@@ -1,26 +1,65 @@
 import { ThemedText } from "@/components/themed-text";
-import { ThemedView } from "@/components/themed-view";
 import AppDropdown, { DropdownOption } from "@/components/ui/AppDropdown";
 import { BottomTabInset, MaxContentWidth, Spacing } from "@/constants/theme";
-import { dummyDeckList, SideBoardPlan } from "@/data/mockDeckData";
-import { useTheme } from "@/hooks/use-theme";
+import { SideBoardPlan, slotsTotal } from "@/data/mockDeckData";
 import { useState } from "react";
-import { FlatList, Platform, Pressable, StyleSheet } from "react-native";
+import { Platform, StyleSheet } from "react-native";
 import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 
-import { useRouter } from "expo-router";
+import { ThemedView } from "@/components/themed-view";
+import { PlusSquareIcon } from "lucide-react-native";
 
 export default function TabTwoScreen() {
   const safeAreaInsets = useSafeAreaInsets();
-  const router = useRouter();
   const insets = {
     ...safeAreaInsets,
     bottom: safeAreaInsets.bottom + BottomTabInset + Spacing.three,
   };
-  const theme = useTheme();
+
+  // DummyData until sideboard call is done properly
+  const sideBoard = [
+    { cardId: "disruptive-hex", quantity: 2 },
+    { cardId: "resolute-vanguard", quantity: 2 },
+    { cardId: "counter-spell", quantity: 2 },
+    { cardId: "big-finish", quantity: 2 },
+  ];
+
+  const mainBoard = [
+    { cardId: "vi-champ", quantity: 2 },
+    { cardId: "shock-trooper", quantity: 3 },
+    { cardId: "brawler", quantity: 3 },
+    { cardId: "street-tough", quantity: 3 },
+    { cardId: "reckless-charge", quantity: 3 },
+    { cardId: "demolish", quantity: 2 },
+    { cardId: "riot-instigator", quantity: 3 },
+    { cardId: "chaos-bolt", quantity: 3 },
+    { cardId: "enforcer-squad", quantity: 3 },
+    { cardId: "overdrive", quantity: 2 },
+    { cardId: "wrecking-ball", quantity: 2 },
+    { cardId: "quick-jab", quantity: 3 },
+    { cardId: "unstable-bruiser", quantity: 3 },
+    { cardId: "heavy-hitter", quantity: 3 },
+    { cardId: "last-stand", quantity: 2 },
+  ];
+
+  const dummySideBoardPlan = {
+    id: "plan-vs-draven",
+    vs: "Draven Aggro",
+    out: [
+      { cardId: "reckless-charge", quantity: 2 },
+      { cardId: "brawler", quantity: 1 },
+    ],
+    in: [
+      { cardId: "disruptive-hex", quantity: 2 },
+      { cardId: "resolute-vanguard", quantity: 1 },
+    ],
+    swapChampionTo: "",
+    notes:
+      "Hex clears their small units; Vanguard holds the lane. Mulligan for 2-drops.",
+  };
 
   const contentPlatformStyle = Platform.select({
     android: {
@@ -35,15 +74,90 @@ export default function TabTwoScreen() {
     },
   });
 
-  const [deck, onDeckChange] = useState(dummyDeckList[0]);
-  const options: DropdownOption[] = dummyDeckList.map((deck) => ({
-    label: deck.name,
-    value: deck.id,
-  }));
-  const sideBoardPlans: SideBoardPlan[] = deck.sideBoardPlans;
+  const [currentSideBoardPlan, setCurrentSideBoardPlan]: SideBoardPlan =
+    useState(dummySideBoardPlan || [{ cardId: "", quantity: 1 }]);
+  console.log("slots that are available", slotsTotal(currentSideBoardPlan.out));
+  const sideBoardOptions: DropdownOption[] = sideBoard
+    .filter(
+      (sideBoardCard) =>
+        !currentSideBoardPlan.in.some(
+          (sideInCard: any) => sideInCard.id === sideBoardCard.cardId,
+        ),
+    )
+    .map((sideBoardCard) => ({
+      label: sideBoardCard.cardId,
+      value: sideBoardCard.cardId,
+    }));
+  const mainBoardOptions: DropdownOption[] = mainBoard
+    .filter(
+      (mainBoardCard) =>
+        !currentSideBoardPlan.out.some(
+          (sideOutCard: any) => sideOutCard.id === mainBoardCard.cardId,
+        ),
+    )
+    .map((mainBoardCard) => ({
+      label: mainBoardCard.cardId,
+      value: mainBoardCard.cardId,
+    }));
+
+  let addInRowActive = true;
+  const addOutRowActive = true;
+  console.log("THIS IS SIDEBOARD PLAN", currentSideBoardPlan);
+  const quantityOptions = [
+    { label: "1", value: 1 },
+    { label: "2", value: 2 },
+    { label: "3", value: 3 },
+  ];
   return (
     <SafeAreaView edges={["top", "bottom"]}>
-      <ThemedText>THIS IS PLAN ID </ThemedText>
+      <ThemedView style={styles.container}>
+        {/* THIS is where Logic for Side Boarding Cards In / Out Should be  */}
+        <ThemedView>
+          <ThemedText>Side Out</ThemedText>
+          {currentSideBoardPlan.out.map((sideBoardCard: any, index: number) => (
+            <ThemedView style={styles.row} key={index}>
+              <AppDropdown
+                value={sideBoardCard.quantity || 1}
+                onChange={() => {}}
+                options={quantityOptions}
+                propStyles={{ maxWidth: 70 }}
+              />
+              <AppDropdown
+                value={sideBoardCard.cardId || null}
+                onChange={() => {}}
+                options={mainBoardOptions}
+              />
+            </ThemedView>
+          ))}
+          {slotsTotal(currentSideBoardPlan.out) < 8 ? (
+            <PlusSquareIcon
+              height={32}
+              width={32}
+              onPress={() => {
+                const editCurrentSideBoardPlan = { ...currentSideBoardPlan };
+                console.log("WHAT");
+                editCurrentSideBoardPlan.out.push({ cardId: "", quantity: 1 });
+                setCurrentSideBoardPlan(editCurrentSideBoardPlan);
+              }}
+            />
+          ) : null}
+        </ThemedView>
+        <ThemedView>
+          <ThemedText>Side In</ThemedText>
+          {currentSideBoardPlan.out.map((sideBoardCard: any, index: number) => (
+            <ThemedView style={styles.row} key={`out-${index}`}>
+              <AppDropdown
+                value={sideBoardCard.cardId || null}
+                onChange={() => {}}
+                options={sideBoardOptions}
+              />
+              {slotsTotal(currentSideBoardPlan.inr) < 8 ? (
+                <PlusSquareIcon height={32} width={32} />
+              ) : null}
+            </ThemedView>
+          ))}
+        </ThemedView>
+      </ThemedView>
     </SafeAreaView>
   );
 }
@@ -114,7 +228,7 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: "row",
     display: "flex",
-    justifyContent: "space-around",
+    alignItems: "center",
     gap: 5,
   },
   recentDecksContainer: {
@@ -124,16 +238,5 @@ const styles = StyleSheet.create({
     borderColor: "black",
     boxShadow: "10 20 10 10",
     borderWidth: 2,
-  },
-  "quickstart-button": {
-    width: "30%",
-    minHeight: 150,
-    flexDirection: "column",
-    display: "flex",
-    borderWidth: 2,
-    borderColor: "black",
-    alignContent: "center",
-    justifyContent: "center",
-    textAlign: "center",
   },
 });

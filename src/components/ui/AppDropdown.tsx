@@ -3,14 +3,15 @@ import { Dropdown } from "react-native-element-dropdown";
 
 export interface DropdownOption {
   label: string;
-  value: string;
+  value: string | number;
 }
 
 interface AppDropdownProps {
-  value: string | null;
+  value: string | number | null;
   onChange: (value: string) => void;
   options: DropdownOption[];
   placeholder?: string;
+  propStyles?: any;
 }
 
 export default function AppDropdown({
@@ -18,10 +19,11 @@ export default function AppDropdown({
   onChange,
   options,
   placeholder = "Select an option",
+  propStyles,
 }: AppDropdownProps) {
   return (
     <Dropdown
-      style={styles.dropdown}
+      style={{ ...styles.dropdown, ...propStyles }}
       placeholderStyle={styles.placeholder}
       selectedTextStyle={styles.selectedText}
       data={options}
@@ -44,6 +46,7 @@ const styles = StyleSheet.create({
     borderColor: "#d1d5db",
     borderRadius: 8,
     paddingHorizontal: 12,
+    flex: 1,
   },
   placeholder: {
     color: "#9ca3af",
