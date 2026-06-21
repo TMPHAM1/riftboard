@@ -3,14 +3,14 @@ import AppDropdown, { DropdownOption } from "@/components/ui/AppDropdown";
 import { BottomTabInset, MaxContentWidth, Spacing } from "@/constants/theme";
 import { SideBoardPlan, slotsTotal } from "@/data/mockDeckData";
 import { useState } from "react";
-import { Platform, StyleSheet } from "react-native";
+import { Platform, Pressable, StyleSheet } from "react-native";
 import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 
 import { ThemedView } from "@/components/themed-view";
-import { PlusSquareIcon } from "lucide-react-native";
+import { EllipsisVertical, PlusSquareIcon } from "lucide-react-native";
 
 export default function TabTwoScreen() {
   const safeAreaInsets = useSafeAreaInsets();
@@ -74,9 +74,15 @@ export default function TabTwoScreen() {
     },
   });
 
-  const [currentSideBoardPlan, setCurrentSideBoardPlan]: SideBoardPlan =
-    useState(dummySideBoardPlan || [{ cardId: "", quantity: 1 }]);
-  console.log("slots that are available", slotsTotal(currentSideBoardPlan.out));
+  const [currentSideBoardPlan, setCurrentSideBoardPlan] =
+useState<SideBoardPlan>(dummySideBoardPlan ?? {
+  id: "",
+  vs: "",
+  out: [],
+  in: [],
+  swapChampionTo: "",
+  notes: "",
+});  console.log("slots that are available", slotsTotal(currentSideBoardPlan.out));
   const sideBoardOptions: DropdownOption[] = sideBoard
     .filter(
       (sideBoardCard) =>
@@ -100,9 +106,7 @@ export default function TabTwoScreen() {
       value: mainBoardCard.cardId,
     }));
 
-  let addInRowActive = true;
-  const addOutRowActive = true;
-  console.log("THIS IS SIDEBOARD PLAN", currentSideBoardPlan);
+  
   const quantityOptions = [
     { label: "1", value: 1 },
     { label: "2", value: 2 },
@@ -113,7 +117,10 @@ export default function TabTwoScreen() {
       <ThemedView style={styles.container}>
         {/* THIS is where Logic for Side Boarding Cards In / Out Should be  */}
         <ThemedView>
+          <ThemedView style={{display: "flex", flexDirection: "row", justifyContent:"space-between", paddingHorizontal: 10}}>
           <ThemedText>Side Out</ThemedText>
+          <ThemedText>{slotsTotal(currentSideBoardPlan.out)}/8</ThemedText>
+          </ThemedView>
           {currentSideBoardPlan.out.map((sideBoardCard: any, index: number) => (
             <ThemedView style={styles.row} key={index}>
               <AppDropdown
@@ -127,19 +134,25 @@ export default function TabTwoScreen() {
                 onChange={() => {}}
                 options={mainBoardOptions}
               />
+                      <EllipsisVertical width={24} height={24} />
             </ThemedView>
+    
           ))}
           {slotsTotal(currentSideBoardPlan.out) < 8 ? (
+            <Pressable  
+             onPress={() => {
+    setCurrentSideBoardPlan((prev) => ({
+      ...prev,
+      out: [...prev.out, { cardId: "", quantity: 1 }],
+    }));
+  }}
+            >
             <PlusSquareIcon
               height={32}
               width={32}
-              onPress={() => {
-                const editCurrentSideBoardPlan = { ...currentSideBoardPlan };
-                console.log("WHAT");
-                editCurrentSideBoardPlan.out.push({ cardId: "", quantity: 1 });
-                setCurrentSideBoardPlan(editCurrentSideBoardPlan);
-              }}
+             
             />
+            </Pressable>
           ) : null}
         </ThemedView>
         <ThemedView>
@@ -151,7 +164,7 @@ export default function TabTwoScreen() {
                 onChange={() => {}}
                 options={sideBoardOptions}
               />
-              {slotsTotal(currentSideBoardPlan.inr) < 8 ? (
+              {slotsTotal(currentSideBoardPlan.in) < 8 ? (
                 <PlusSquareIcon height={32} width={32} />
               ) : null}
             </ThemedView>
