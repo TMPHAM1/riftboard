@@ -6,7 +6,7 @@ import { AnimatedIcon } from "@/components/animated-icon";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { BottomTabInset, MaxContentWidth, Spacing } from "@/constants/theme";
-import { Link } from "expo-router";
+import { Link, Redirect } from "expo-router";
 import { useEffect, useRef } from "react";
 
 function getDevMenuHint() {
@@ -29,6 +29,9 @@ function getDevMenuHint() {
 }
 
 export default function HomeScreen() {
+  // Uncomment this line to redirect directly to dashboard instead of showing splash
+  // return <Redirect href="/dashboard" />;
+
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {

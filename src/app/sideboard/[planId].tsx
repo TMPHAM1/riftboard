@@ -1,7 +1,7 @@
 import { ThemedText } from "@/components/themed-text";
 import AppDropdown, { DropdownOption } from "@/components/ui/AppDropdown";
 import { BottomTabInset, MaxContentWidth, Spacing } from "@/constants/theme";
-import { SideBoardPlan, slotsTotal } from "@/data/mockDeckData";
+import { dummyDeckList, SideBoardPlan, slotsTotal } from "@/data/mockDeckData";
 import { useState } from "react";
 import { Platform, Pressable, StyleSheet } from "react-native";
 import {
@@ -10,9 +10,13 @@ import {
 } from "react-native-safe-area-context";
 
 import { ThemedView } from "@/components/themed-view";
-import { EllipsisVertical, PlusSquareIcon } from "lucide-react-native";
+import RowMenu from "@/components/ui/RowMenu";
+import { PlusCircleIcon, PlusSquareIcon } from "lucide-react-native";
 
-export default function TabTwoScreen() {
+export default function SideBoardPlanScreen() {
+  type SideKey = "in" | "out";
+  type CardSlot = { cardId: string; quantity: number };
+
   const safeAreaInsets = useSafeAreaInsets();
   const insets = {
     ...safeAreaInsets,
@@ -20,30 +24,6 @@ export default function TabTwoScreen() {
   };
 
   // DummyData until sideboard call is done properly
-  const sideBoard = [
-    { cardId: "disruptive-hex", quantity: 2 },
-    { cardId: "resolute-vanguard", quantity: 2 },
-    { cardId: "counter-spell", quantity: 2 },
-    { cardId: "big-finish", quantity: 2 },
-  ];
-
-  const mainBoard = [
-    { cardId: "vi-champ", quantity: 2 },
-    { cardId: "shock-trooper", quantity: 3 },
-    { cardId: "brawler", quantity: 3 },
-    { cardId: "street-tough", quantity: 3 },
-    { cardId: "reckless-charge", quantity: 3 },
-    { cardId: "demolish", quantity: 2 },
-    { cardId: "riot-instigator", quantity: 3 },
-    { cardId: "chaos-bolt", quantity: 3 },
-    { cardId: "enforcer-squad", quantity: 3 },
-    { cardId: "overdrive", quantity: 2 },
-    { cardId: "wrecking-ball", quantity: 2 },
-    { cardId: "quick-jab", quantity: 3 },
-    { cardId: "unstable-bruiser", quantity: 3 },
-    { cardId: "heavy-hitter", quantity: 3 },
-    { cardId: "last-stand", quantity: 2 },
-  ];
 
   const dummySideBoardPlan = {
     id: "plan-vs-draven",
@@ -52,14 +32,16 @@ export default function TabTwoScreen() {
       { cardId: "reckless-charge", quantity: 2 },
       { cardId: "brawler", quantity: 1 },
     ],
-    in: [
-      { cardId: "disruptive-hex", quantity: 2 },
-      { cardId: "resolute-vanguard", quantity: 1 },
-    ],
+    in: [],
     swapChampionTo: "",
     notes:
       "Hex clears their small units; Vanguard holds the lane. Mulligan for 2-drops.",
   };
+
+  const deckOptions: DropdownOption[] = dummyDeckList.map((deck) => ({
+    label: deck.name,
+    value: deck.id,
+  }));
 
   const contentPlatformStyle = Platform.select({
     android: {
@@ -73,16 +55,28 @@ export default function TabTwoScreen() {
       paddingBottom: Spacing.four,
     },
   });
-
+  const [currentDeck, setCurrentDeck] = useState(dummyDeckList[0] || null);
   const [currentSideBoardPlan, setCurrentSideBoardPlan] =
-useState<SideBoardPlan>(dummySideBoardPlan ?? {
-  id: "",
-  vs: "",
-  out: [],
-  in: [],
-  swapChampionTo: "",
-  notes: "",
-});  console.log("slots that are available", slotsTotal(currentSideBoardPlan.out));
+    useState<SideBoardPlan>(
+      dummySideBoardPlan ?? {
+        id: "",
+        vs: "",
+        out: [],
+        in: [],
+        swapChampionTo: "",
+        notes: "",
+      },
+    );
+
+  let sideBoard = currentDeck.sideBoard;
+  let mainBoard = currentDeck.mainBoard;
+  const sideBoardPlans: SideBoardPlan[] = currentDeck.sideBoardPlans;
+  const sideBoardPlanOptions: DropdownOption[] = sideBoardPlans.map((plan) => {
+    return {
+      label: plan.id,
+      value: plan.id,
+    };
+  });
   const sideBoardOptions: DropdownOption[] = sideBoard
     .filter(
       (sideBoardCard) =>
@@ -106,69 +100,256 @@ useState<SideBoardPlan>(dummySideBoardPlan ?? {
       value: mainBoardCard.cardId,
     }));
 
-  
-  const quantityOptions = [
-    { label: "1", value: 1 },
-    { label: "2", value: 2 },
-    { label: "3", value: 3 },
-  ];
+  const quantityOptions = (quantity: number | undefined) => {
+    return Array.from({ length: quantity ?? 0 }, (_, index) => ({
+      label: `${index + 1}`,
+      value: index + 1,
+    }));
+  };
+  const updateSlot = (
+    sideType: SideKey,
+    index: number,
+    changes: Partial<CardSlot>,
+  ) => {
+    const key: SideKey = sideType;
+    setCurrentSideBoardPlan((prev) => ({
+      ...prev,
+      [key]: prev[key].map((card, i) =>
+        i === index ? { ...card, ...changes } : card,
+      ),
+    }));
+  };
+
+  const onQtyChange = (qty: string, index: number, sideType: SideKey) =>
+    updateSlot(sideType, index, { quantity: parseInt(qty) });
+  const onCardChange = (cardId: string, index: number, sideType: SideKey) =>
+    updateSlot(sideType, index, { cardId });
+  const onDeleteChange = (index: number, sideType: SideKey) => {
+    setCurrentSideBoardPlan((prev) => ({
+      ...prev,
+      [sideType]: prev[sideType].filter((card, i) => i !== index),
+    }));
+  };
+  const outTotal = slotsTotal(currentSideBoardPlan.out);
+  const isOutWarning = outTotal > 8;
+  const inTotal = slotsTotal(currentSideBoardPlan.in);
+  const isInWarning = inTotal > 8;
   return (
     <SafeAreaView edges={["top", "bottom"]}>
       <ThemedView style={styles.container}>
         {/* THIS is where Logic for Side Boarding Cards In / Out Should be  */}
-        <ThemedView>
-          <ThemedView style={{display: "flex", flexDirection: "row", justifyContent:"space-between", paddingHorizontal: 10}}>
-          <ThemedText>Side Out</ThemedText>
-          <ThemedText>{slotsTotal(currentSideBoardPlan.out)}/8</ThemedText>
-          </ThemedView>
-          {currentSideBoardPlan.out.map((sideBoardCard: any, index: number) => (
-            <ThemedView style={styles.row} key={index}>
-              <AppDropdown
-                value={sideBoardCard.quantity || 1}
-                onChange={() => {}}
-                options={quantityOptions}
-                propStyles={{ maxWidth: 70 }}
-              />
-              <AppDropdown
-                value={sideBoardCard.cardId || null}
-                onChange={() => {}}
-                options={mainBoardOptions}
-              />
-                      <EllipsisVertical width={24} height={24} />
-            </ThemedView>
-    
-          ))}
-          {slotsTotal(currentSideBoardPlan.out) < 8 ? (
-            <Pressable  
-             onPress={() => {
-    setCurrentSideBoardPlan((prev) => ({
-      ...prev,
-      out: [...prev.out, { cardId: "", quantity: 1 }],
-    }));
-  }}
-            >
-            <PlusSquareIcon
-              height={32}
-              width={32}
-             
+        <ThemedView
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-between",
+            paddingHorizontal: 10,
+          }}
+        >
+          <ThemedText>Deck</ThemedText>
+          <ThemedView
+            style={{
+              paddingVertical: 20,
+              display: "flex",
+              flexDirection: "row",
+            }}
+          >
+            <AppDropdown
+              options={deckOptions}
+              value={currentDeck.id || null}
+              onChange={(event) => {
+                console.log();
+                console.log(event);
+                const selectedDeck = dummyDeckList.find(
+                  (deck) => deck.id === event,
+                );
+                if (!selectedDeck) {
+                  return;
+                }
+                setCurrentDeck(selectedDeck);
+                setCurrentSideBoardPlan(
+                  selectedDeck.sideBoardPlans[0] || undefined,
+                );
+              }}
             />
+          </ThemedView>
+        </ThemedView>
+        <ThemedView
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-between",
+            paddingHorizontal: 10,
+            marginVertical: 0,
+          }}
+        >
+          <ThemedView
+            style={{
+              display: "flex",
+              flexDirection: "row",
+              justifyContent: "space-between",
+            }}
+          >
+            <ThemedText>Sideboard Plan</ThemedText>
+            <Pressable>
+              <PlusCircleIcon />
+            </Pressable>
+          </ThemedView>
+
+          <ThemedView
+            style={{
+              paddingVertical: 20,
+              display: "flex",
+              flexDirection: "row",
+            }}
+          >
+            <AppDropdown
+              options={sideBoardPlanOptions}
+              value={currentSideBoardPlan.id || null}
+              onChange={(event) => {
+                console.log(sideBoardPlans);
+                console.log(event);
+                const selectedSideBoard = sideBoardPlans.find(
+                  (plan) => plan.id === event,
+                );
+                if (!selectedSideBoard) {
+                  return;
+                }
+                setCurrentSideBoardPlan(selectedSideBoard);
+              }}
+            />
+          </ThemedView>
+        </ThemedView>
+        <ThemedView>
+          <ThemedView
+            style={{
+              display: "flex",
+              flexDirection: "row",
+              justifyContent: "space-between",
+              paddingHorizontal: 10,
+            }}
+          >
+            <ThemedText>Side Out</ThemedText>
+            <ThemedText style={[isOutWarning && styles.countWarning]}>
+              {slotsTotal(currentSideBoardPlan.out)}/8
+            </ThemedText>
+          </ThemedView>
+          {currentSideBoardPlan.out.map(
+            (planSideBoardCard: any, index: number) => {
+              const sideBoardQuantity = mainBoard.find(
+                (actualMainBoardCard) => {
+                  console.log(
+                    planSideBoardCard.cardId === actualMainBoardCard.cardId,
+                  );
+                  return (
+                    planSideBoardCard.cardId === actualMainBoardCard.cardId
+                  );
+                },
+              )?.quantity;
+              console.log(sideBoardQuantity);
+              return (
+                <ThemedView style={styles.row} key={index}>
+                  <AppDropdown
+                    value={planSideBoardCard.quantity || 1}
+                    onChange={(event) => onQtyChange(event, index, "out")}
+                    options={quantityOptions(sideBoardQuantity)}
+                    propStyles={{ maxWidth: 70 }}
+                  />
+                  <AppDropdown
+                    value={planSideBoardCard.cardId || null}
+                    onChange={(event) => onCardChange(event, index, "out")}
+                    options={mainBoardOptions}
+                  />
+                  <RowMenu
+                    onDelete={() => {
+                      onDeleteChange(index, "out");
+                    }}
+                  />
+                </ThemedView>
+              );
+            },
+          )}
+          {slotsTotal(currentSideBoardPlan.out) < 8 ? (
+            <Pressable
+              style={styles.button}
+              onPress={() => {
+                setCurrentSideBoardPlan((prev) => ({
+                  ...prev,
+                  out: [...prev.out, { cardId: "", quantity: 1 }],
+                }));
+              }}
+            >
+              <ThemedView>
+                <ThemedText>Add Card to Sideboard Out</ThemedText>
+              </ThemedView>
+              <PlusSquareIcon height={32} width={32} />
             </Pressable>
           ) : null}
         </ThemedView>
         <ThemedView>
-          <ThemedText>Side In</ThemedText>
-          {currentSideBoardPlan.out.map((sideBoardCard: any, index: number) => (
-            <ThemedView style={styles.row} key={`out-${index}`}>
-              <AppDropdown
-                value={sideBoardCard.cardId || null}
-                onChange={() => {}}
-                options={sideBoardOptions}
-              />
-              {slotsTotal(currentSideBoardPlan.in) < 8 ? (
-                <PlusSquareIcon height={32} width={32} />
-              ) : null}
-            </ThemedView>
-          ))}
+          <ThemedView
+            style={{
+              display: "flex",
+              flexDirection: "row",
+              justifyContent: "space-between",
+              paddingHorizontal: 10,
+            }}
+          >
+            <ThemedText>Side In</ThemedText>
+            <ThemedText style={[isInWarning && styles.countWarning]}>
+              {slotsTotal(currentSideBoardPlan.in)}/8
+            </ThemedText>
+          </ThemedView>
+          {currentSideBoardPlan.in.map(
+            (planSideBoardCard: any, index: number) => {
+              const sideBoardQuantity = sideBoard.find(
+                (actualMainBoardCard) => {
+                  console.log(
+                    planSideBoardCard.cardId === actualMainBoardCard.cardId,
+                  );
+                  return (
+                    planSideBoardCard.cardId === actualMainBoardCard.cardId
+                  );
+                },
+              )?.quantity;
+              return (
+                <ThemedView style={styles.row} key={index}>
+                  <AppDropdown
+                    value={planSideBoardCard.quantity || 1}
+                    onChange={(event) => onQtyChange(event, index, "in")}
+                    options={quantityOptions(sideBoardQuantity)}
+                    propStyles={{ maxWidth: 70 }}
+                  />
+                  <AppDropdown
+                    value={planSideBoardCard.cardId || null}
+                    onChange={(event) => onCardChange(event, index, "in")}
+                    options={sideBoardOptions}
+                  />
+                  <RowMenu
+                    onDelete={() => {
+                      onDeleteChange(index, "in");
+                    }}
+                  />
+                </ThemedView>
+              );
+            },
+          )}
+          {slotsTotal(currentSideBoardPlan.in) < 8 ? (
+            <Pressable
+              style={styles.button}
+              onPress={() => {
+                setCurrentSideBoardPlan((prev) => ({
+                  ...prev,
+                  in: [...prev.in, { cardId: "", quantity: 1 }],
+                }));
+              }}
+            >
+              <ThemedView>
+                <ThemedText>Add Card to Sideboard Out</ThemedText>
+              </ThemedView>
+              <PlusSquareIcon height={32} width={32} />
+            </Pressable>
+          ) : null}
         </ThemedView>
       </ThemedView>
     </SafeAreaView>
@@ -176,9 +357,23 @@ useState<SideBoardPlan>(dummySideBoardPlan ?? {
 }
 
 const styles = StyleSheet.create({
+  countWarning: { color: "#A32D2D" }, // or "red"
   scrollView: {
     flex: 1,
     flexDirection: "column",
+  },
+  button: {
+    borderWidth: 2,
+    borderColor: "black",
+    borderRadius: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    display: "flex",
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 10,
+    marginVertical: 20,
+    alignItems: "center",
   },
   centerText: {
     textAlign: "center",
@@ -190,9 +385,18 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   container: {
-    maxWidth: MaxContentWidth,
-    flexGrow: 1,
-    marginHorizontal: 10,
+    ...Platform.select({
+      web: {
+        width: "100%",
+        height: "100%",
+        paddingHorizontal: 40, // Centers it
+      },
+      default: {
+        maxWidth: MaxContentWidth,
+        marginHorizontal: 10,
+        gap: 10,
+      },
+    }),
   },
   titleContainer: {
     gap: Spacing.three,

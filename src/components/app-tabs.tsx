@@ -38,7 +38,6 @@ export default function AppTabs() {
         }}
       />
       <Tabs.Screen name="sideboard" options={{ title: "Sideboards" }} />
-
       <Tabs.Screen name="settings" options={{ title: "Settings" }} />
       <Tabs.Screen
         name="sideboard/[planId]"

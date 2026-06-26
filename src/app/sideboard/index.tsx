@@ -1,6 +1,6 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import AppDropdown, { DropdownOption } from "@/components/ui/AppDropdown";
+import { DropdownOption } from "@/components/ui/AppDropdown";
 import { BottomTabInset, MaxContentWidth, Spacing } from "@/constants/theme";
 import { dummyDeckList, SideBoardPlan } from "@/data/mockDeckData";
 import { useTheme } from "@/hooks/use-theme";
@@ -42,37 +42,43 @@ export default function TabTwoScreen() {
   }));
   const sideBoardPlans: SideBoardPlan[] = deck.sideBoardPlans;
   return (
-    <SafeAreaView edges={["top", "bottom"]}>
+    <SafeAreaView edges={["top", "bottom"]} style={styles.scrollView}>
       <ThemedView style={styles.container}>
         {/* Title  */}
-        <AppDropdown
-          value={deck.id}
-          onChange={(selectedId) => {
-            const selectedDeck = dummyDeckList.find((d) => d.id === selectedId);
-
-            if (selectedDeck) {
-              onDeckChange(selectedDeck);
-            }
-          }}
-          options={options}
-        />
         <ThemedView>
           <FlatList
-            data={sideBoardPlans}
-            renderItem={({ item }) => (
-              <Pressable
-                style={styles.sideboardPlanContainer}
-                onPress={() =>
-                  router.push({
-                    pathname: "/sideboard/[planId]",
-                    params: { planId: item.id, deckId: deck.id },
-                  })
-                }
-              >
-                <ThemedText>{item.vs}</ThemedText>
+            data={dummyDeckList}
+            renderItem={({ item, index }) => (
+              <Pressable onPress={() => onDeckChange(item)}>
+                <ThemedText>{item.name}</ThemedText>
+                <ThemedText>{item.sideBoardPlans.length}</ThemedText>
               </Pressable>
             )}
+            keyExtractor={(item) => item.id}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            snapToInterval={250} // Adjust based on card width
+            decelerationRate="fast"
           />
+
+          <ThemedView>
+            <FlatList
+              data={sideBoardPlans}
+              renderItem={({ item }) => (
+                <Pressable
+                  style={styles.sideboardPlanContainer}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/sideboard/[planId]",
+                      params: { planId: item.id, deckId: deck.id },
+                    })
+                  }
+                >
+                  <ThemedText>{item.vs}</ThemedText>
+                </Pressable>
+              )}
+            />
+          </ThemedView>
         </ThemedView>
       </ThemedView>
     </SafeAreaView>
@@ -94,9 +100,18 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   container: {
-    maxWidth: MaxContentWidth,
-    flexGrow: 1,
-    marginHorizontal: 10,
+    flex: 1,
+    ...Platform.select({
+      web: {
+        width: "100%",
+        maxWidth: 1200, // Or remove entirely for full width
+        marginHorizontal: "auto", // Centers it
+      },
+      default: {
+        maxWidth: MaxContentWidth,
+        marginHorizontal: 10,
+      },
+    }),
   },
   titleContainer: {
     gap: Spacing.three,

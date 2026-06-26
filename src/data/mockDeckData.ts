@@ -27,6 +27,7 @@ export type Card = {
   id: string; name: string; type: CardType; domain: Domain | null;
   cost: number | null; might: number | null; rarity: string | null;
   keywords: string[]; thumbnailUrl: string;
+  quantity: number;
 };
 export type SideBoardPlan = {
   id: string;
@@ -73,6 +74,8 @@ export const cards: Card[] = [
   c('bf-the-pit', 'The Pit', 'battlefield', null, null, null),
   c('bf-factory', 'Abandoned Factory', 'battlefield', null, null, null),
   c('bf-arena', 'Underground Arena', 'battlefield', null, null, null),
+  c('irelia-legend', 'Irelia, the Blade Dancer', 'legend', null, null, null, 'Legendary'),
+c('irelia-champ', 'Irelia, Bladesurge', 'champion', 'calm', 5, 5, 'Epic', ['Quickstrike']),
 ];
 export const cardsById: Record<string, Card> = Object.fromEntries(cards.map((x) => [x.id, x]));
 
@@ -116,6 +119,46 @@ export const dummyDeckList: Deck[] = [{
   ],
   createdBy: "2026/11/22",
   lastUpdated: "2026/11/22"
+},
+{
+  id: 'deck-irelia-tempo',
+  name: 'Irelia Tempo',
+  domains: ['calm', 'order'],
+  favorited: false,
+  legend: 'irelia-legend',
+  chosenChampionId: 'irelia-champ',
+  mainBoard: [
+    { cardId: 'irelia-champ', quantity: 2 }, { cardId: 'lawkeeper', quantity: 3 },
+    { cardId: 'shield-bearer', quantity: 3 }, { cardId: 'demacian-soldier', quantity: 3 },
+    { cardId: 'serene-guardian', quantity: 3 }, { cardId: 'tranquil-ward', quantity: 3 },
+    { cardId: 'ironclad-defender', quantity: 3 }, { cardId: 'prismatic-barrier', quantity: 3 },
+    { cardId: 'stalwart-guard', quantity: 3 }, { cardId: 'honor-guard', quantity: 3 },
+    { cardId: 'rallying-cry', quantity: 2 }, { cardId: 'moonlight-sentry', quantity: 2 },
+    { cardId: 'gentle-rebuke', quantity: 3 }, { cardId: 'calming-presence', quantity: 2 },
+    { cardId: 'natures-bloom', quantity: 2 },
+  ],
+  runeDeck: [{ cardId: 'calm-rune', quantity: 6 }, { cardId: 'order-rune', quantity: 6 }],
+  battlefields: ['bf-the-pit', 'bf-factory', 'bf-arena'],
+  sideBoard: [
+    { cardId: 'nullify', quantity: 2 }, { cardId: 'serene-bulwark', quantity: 2 },
+    { cardId: 'vanguard-knight', quantity: 2 }, { cardId: 'unbreakable-will', quantity: 2 },
+  ],
+  sideBoardPlans: [
+    { id: 'irelia-vs-aggro', vs: 'Aggro',
+      out: [{ cardId: 'natures-bloom', quantity: 2 }],
+      in: [{ cardId: 'nullify', quantity: 2 }],
+      notes: 'Trim slow value cards for cheap interaction to survive the rush.' },
+    { id: 'irelia-vs-control', vs: 'Control',
+      out: [{ cardId: 'stalwart-guard', quantity: 2 }],
+      in: [{ cardId: 'vanguard-knight', quantity: 2 }],
+      notes: 'Their removal is dead on small bodies — bring resilient threats.' },
+    { id: 'irelia-vs-midrange', vs: 'Midrange',
+      out: [{ cardId: 'calming-presence', quantity: 2 }],
+      in: [{ cardId: 'serene-bulwark', quantity: 1 }, { cardId: 'unbreakable-will', quantity: 1 }],
+      notes: 'Win the board with stickier blockers and protect your tempo.' },
+  ],
+  createdBy: "2026/11/22",
+  lastUpdated: "2026/11/22",
 }];
 
 // ----- Helpers for the sideboard page -----
