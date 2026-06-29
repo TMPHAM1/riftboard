@@ -138,7 +138,22 @@
     // Import info
     import_source?: 'paste' | 'url' | 'file';
     source_url?: string;
+
+    // App-level sideboard planning
+    sideboard_plans?: SideBoardPlan[];
   }
+
+  export type CardSlot = { cardId: string; quantity: number };
+
+  export type SideBoardPlan = {
+    id: string;
+    vs: string;
+    out: CardSlot[];
+    in: CardSlot[];
+    vsLegend?: string;   // the opponent's legend this plan is built against
+    swapChampionTo?: string;
+    notes?: string;
+  };
 
   export interface GameSession {
     id: string;

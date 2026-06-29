@@ -47,6 +47,10 @@ export default function TabLayout() {
             }}
           />
           <Tabs.Screen name="settings" options={{ title: "Settings" }} />
+          <Tabs.Screen
+            name="sideboard/[planId]"
+            options={{ title: "sideboard/[planId]", href: null }}
+          />
         </Tabs>
       </ThemeProvider>
     </SafeAreaProvider>

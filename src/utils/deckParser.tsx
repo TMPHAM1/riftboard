@@ -1,6 +1,49 @@
 // src/utils/deckParser.ts
 
-import { ParsedDeckList } from "@/types/rift";
+import { Deck, ParsedDeckList } from "@/types/rift";
+
+// Reconstructs the standard import text from a saved Deck object.
+// Used to pre-fill the Edit Deck textarea so the user sees the familiar format.
+export function deckToText(deck: Deck): string {
+  const lines: string[] = [];
+
+  if (deck.legend) {
+    lines.push("Legend:");
+    lines.push(`${deck.legend.quantity} ${deck.legend.card_name}`);
+    lines.push("");
+  }
+
+  if (deck.champion) {
+    lines.push("Champion:");
+    lines.push(`${deck.champion.quantity} ${deck.champion.card_name}`);
+    lines.push("");
+  }
+
+  if (deck.main_deck.length > 0) {
+    lines.push("MainDeck:");
+    deck.main_deck.forEach((c) => lines.push(`${c.quantity} ${c.card_name}`));
+    lines.push("");
+  }
+
+  if (deck.battlefields.length > 0) {
+    lines.push("Battlefields:");
+    deck.battlefields.forEach((c) => lines.push(`${c.quantity} ${c.card_name}`));
+    lines.push("");
+  }
+
+  if (deck.runes.length > 0) {
+    lines.push("Runes:");
+    deck.runes.forEach((c) => lines.push(`${c.quantity} ${c.card_name}`));
+    lines.push("");
+  }
+
+  if (deck.sideboard.length > 0) {
+    lines.push("Sideboard:");
+    deck.sideboard.forEach((c) => lines.push(`${c.quantity} ${c.card_name}`));
+  }
+
+  return lines.join("\n");
+}
 
 export class DeckParser {
   // Map section headers to our structure
@@ -72,37 +115,58 @@ export class DeckParser {
   } {
     const errors: string[] = [];
 
+    // Legend is required
+    if (!deck.legend) {
+      errors.push("A Legend card is required.");
+    }
+
+    // Champion is required and must share the legend's first name
+    // e.g. legend "Irelia, Blade Dancer" → champion must contain "Irelia"
+    if (!deck.champion) {
+      errors.push("A Champion unit is required.");
+    } else if (deck.legend) {
+      const legendFirstName = deck.legend.split(/[\s,]+/)[0];
+      if (!deck.champion.toLowerCase().includes(legendFirstName.toLowerCase())) {
+        errors.push(
+          `Champion "${deck.champion}" must match the legend "${deck.legend}" (both should share the name "${legendFirstName}").`,
+        );
+      }
+    }
+
+    // Main deck must be exactly 39 cards
     const mainDeckCount = deck.main_deck.reduce(
       (sum, card) => sum + card.quantity,
       0,
     );
     if (mainDeckCount !== 39) {
-      errors.push(
-        `Main deck has to be 39 cards, current amount: ${mainDeckCount} `,
-      );
+      errors.push(`Main deck must be exactly 39 cards (currently ${mainDeckCount}).`);
     }
 
-    // Check for duplicates over limit (usually 3)
+    // Minimum 12 runes required
+    const runeCount = deck.runes.reduce((sum, card) => sum + card.quantity, 0);
+    if (runeCount === 12) {
+      errors.push(`At least 12 runes are required (currently ${runeCount}).`);
+    }
+
+    // Max 3 copies of any single card across main deck and sideboard
     const cardCounts = new Map<string, number>();
     [...deck.main_deck, ...deck.sideboard].forEach(({ name, quantity }) => {
-      const current = cardCounts.get(name) || 0;
-      cardCounts.set(name, current + quantity);
+      cardCounts.set(name, (cardCounts.get(name) ?? 0) + quantity);
     });
-
     for (const [name, count] of cardCounts.entries()) {
       if (count > 3) {
-        errors.push(`"${name}" has ${count} copies (maximum 3)`);
+        errors.push(`"${name}" has ${count} copies (maximum 3).`);
       }
     }
 
-    // Check sideboard size (typically exactly 7)
+    // Sideboard must be exactly 0 or exactly 8 cards — nothing in between
     const sideboardCount = deck.sideboard.reduce(
       (sum, card) => sum + card.quantity,
       0,
     );
-    if (sideboardCount !== 8 && sideboardCount !== 0) {
+    if (sideboardCount !== 0 && sideboardCount !== 8) {
       errors.push(
-        `Sideboard has ${sideboardCount} cards (should be 8 or 0   )`,
+        `Sideboard must be exactly 0 or 8 cards (currently ${sideboardCount}).`,
       );
     }
 

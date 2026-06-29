@@ -1,9 +1,9 @@
-
-  import { Card } from '@/data/mockDeckData';
 import { Deck, DeckCard, ParsedDeckList, RiftCard } from '@/types/rift';
 import { DeckParser } from '@/utils/deckParser';
+import 'react-native-get-random-values';
 import { v4 as uuidv4 } from 'uuid';
 import { RiftAPI } from '../api/riftApi';
+
 
   export class DeckImportService {
 
@@ -99,11 +99,9 @@ import { RiftAPI } from '../api/riftApi';
       // Get unique domains
       const getUniqueDomains = (): string[] => {
         const domains = new Set<string>();
-
         cardMap.forEach(card => {
-          card.classification.domain?.forEach(d => domains.add(d));
+          card.classification?.domain?.forEach(d => domains.add(d));
         });
-
         return Array.from(domains);
       };
 
@@ -138,7 +136,7 @@ import { RiftAPI } from '../api/riftApi';
 
       [parsed.main_deck, parsed.battlefields, parsed.runes, parsed.sideboard]
         .forEach(section => {
-          total += section.reduce((sum: number, card: Card) => sum + card.quantity, 0);
+          total += section.reduce((sum: number, card: { quantity: number }) => sum + card.quantity, 0);
         });
 
       return total;

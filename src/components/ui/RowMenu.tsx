@@ -1,9 +1,14 @@
-import { EllipsisVertical, Trash } from "lucide-react-native";
+import { EllipsisVertical, Eye, Trash } from "lucide-react-native";
 import { useRef, useState } from "react";
 import { Dimensions, Modal, Pressable, StyleSheet, View } from "react-native";
 import { ThemedText } from "../themed-text";
 
-function RowMenu({ onDelete }: { onDelete: () => void }) {
+interface RowMenuProps {
+  onDelete: () => void;
+  onView?: () => void;
+}
+
+function RowMenu({ onDelete, onView }: RowMenuProps) {
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState({ top: 0, right: 0 });
   const anchorRef = useRef<View>(null);
@@ -15,27 +20,42 @@ function RowMenu({ onDelete }: { onDelete: () => void }) {
       setOpen(true);
     });
   };
+
+  const close = () => setOpen(false);
+
   return (
     <>
       <Pressable ref={anchorRef} onPress={openMenu} hitSlop={8}>
         <EllipsisVertical height={24} width={24} />
       </Pressable>
-      <Modal
-        visible={open}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setOpen(false)}
-      >
+
+      <Modal visible={open} transparent animationType="fade" onRequestClose={close}>
+        {/* Full-screen backdrop — tapping outside closes the menu */}
+        <Pressable style={styles.backdrop} onPress={close} />
+
         <View style={[styles.menu, { top: pos.top, right: pos.right }]}>
+          {onView && (
+            <Pressable
+              style={styles.menuItem}
+              onPress={() => {
+                close();
+                onView();
+              }}
+            >
+              <ThemedText>View</ThemedText>
+              <Eye height={20} width={20} color="#555" />
+            </Pressable>
+          )}
+
           <Pressable
             style={styles.menuItem}
             onPress={() => {
-              setOpen(false);
+              close();
               onDelete();
             }}
           >
-            <ThemedText>Delete</ThemedText>
-            <Trash height={20} width={20} color="red" />
+            <ThemedText style={styles.dangerText}>Delete</ThemedText>
+            <Trash height={20} width={20} color="#A32D2D" />
           </Pressable>
         </View>
       </Modal>
@@ -44,7 +64,9 @@ function RowMenu({ onDelete }: { onDelete: () => void }) {
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1 },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+  },
   menu: {
     position: "absolute",
     minWidth: 160,
@@ -65,7 +87,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 14,
   },
-  menuItemDanger: { color: "#A32D2D", fontSize: 15 },
+  dangerText: { color: "#A32D2D" },
 });
 
 export default RowMenu;
