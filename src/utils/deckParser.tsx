@@ -27,7 +27,9 @@ export function deckToText(deck: Deck): string {
 
   if (deck.battlefields.length > 0) {
     lines.push("Battlefields:");
-    deck.battlefields.forEach((c) => lines.push(`${c.quantity} ${c.card_name}`));
+    deck.battlefields.forEach((c) =>
+      lines.push(`${c.quantity} ${c.card_name}`),
+    );
     lines.push("");
   }
 
@@ -126,7 +128,9 @@ export class DeckParser {
       errors.push("A Champion unit is required.");
     } else if (deck.legend) {
       const legendFirstName = deck.legend.split(/[\s,]+/)[0];
-      if (!deck.champion.toLowerCase().includes(legendFirstName.toLowerCase())) {
+      if (
+        !deck.champion.toLowerCase().includes(legendFirstName.toLowerCase())
+      ) {
         errors.push(
           `Champion "${deck.champion}" must match the legend "${deck.legend}" (both should share the name "${legendFirstName}").`,
         );
@@ -139,12 +143,14 @@ export class DeckParser {
       0,
     );
     if (mainDeckCount !== 39) {
-      errors.push(`Main deck must be exactly 39 cards (currently ${mainDeckCount}).`);
+      errors.push(
+        `Main deck must be exactly 39 cards (currently ${mainDeckCount}).`,
+      );
     }
 
     // Minimum 12 runes required
     const runeCount = deck.runes.reduce((sum, card) => sum + card.quantity, 0);
-    if (runeCount === 12) {
+    if (runeCount !== 12) {
       errors.push(`At least 12 runes are required (currently ${runeCount}).`);
     }
 

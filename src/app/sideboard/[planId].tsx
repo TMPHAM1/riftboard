@@ -5,25 +5,20 @@ import CardPreviewModal from "@/components/ui/CardPreviewModal";
 import ImportDeckModal from "@/components/ui/ImportDeckModal";
 import NamePromptModal from "@/components/ui/NamePromptModal";
 import RowMenu from "@/components/ui/RowMenu";
-import { BottomTabInset, MaxContentWidth, Spacing } from "@/constants/theme";
+import { BottomTabInset, ContentLayout, Spacing } from "@/constants/theme";
 import { RiftAPI } from "@/api/riftApi";
 import { slotsTotal } from "@/data/mockDeckData";
 import { loadDecks, updateSideboardPlans } from "@/services/deckStorageService";
 import { CardSlot, Deck, RiftCard, SideBoardPlan } from "@/types/rift";
 import { useLocalSearchParams } from "expo-router";
-import PlanExportView from "@/components/ui/PlanExportView";
-import * as Sharing from "expo-sharing";
-import { AlertTriangle, Pencil, PlusCircle, PlusSquare, Share2 } from "lucide-react-native";
-import { useEffect, useRef, useState } from "react";
+import { AlertTriangle, Pencil, PlusCircle, PlusSquare } from "lucide-react-native";
+import { useEffect, useState } from "react";
 import {
   Modal,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
-  View,
 } from "react-native";
-import ViewShot, { captureRef } from "react-native-view-shot";
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -53,25 +48,7 @@ export default function SideBoardPlanScreen() {
   const [showNewDeck, setShowNewDeck] = useState(false);
   const [showNamePrompt, setShowNamePrompt] = useState(false);
   const [showWarningModal, setShowWarningModal] = useState(false);
-  const [isExporting, setIsExporting] = useState(false);
   const [legends, setLegends] = useState<string[]>([]);
-  const exportRef = useRef<View>(null);
-
-  const handleExport = async () => {
-    if (!exportRef.current || !currentDeck) return;
-    setIsExporting(true);
-    try {
-      const uri = await captureRef(exportRef, { format: "png", quality: 1 });
-      await Sharing.shareAsync(uri, {
-        mimeType: "image/png",
-        dialogTitle: "Share sideboard plan",
-      });
-    } catch (err) {
-      console.error("Export failed:", err);
-    } finally {
-      setIsExporting(false);
-    }
-  };
 
   // Fetch legend names from the API once on mount (cached in-memory after first call)
   useEffect(() => {
@@ -234,11 +211,6 @@ export default function SideBoardPlanScreen() {
           <ThemedView style={styles.labelRow}>
             <ThemedText>Sideboard Plan</ThemedText>
             <ThemedView style={styles.labelActions}>
-              {currentPlan.id && (
-                <Pressable hitSlop={10} onPress={handleExport} disabled={isExporting}>
-                  <Share2 size={16} color={isExporting ? "#ccc" : "#888"} />
-                </Pressable>
-              )}
               <Pressable hitSlop={10} onPress={() => setShowNamePrompt(true)}>
                 <PlusCircle size={18} color="#888" />
               </Pressable>
@@ -468,18 +440,6 @@ export default function SideBoardPlanScreen() {
           });
         }}
       />
-
-      {/* Off-screen capture target — rendered outside viewport, captured on export */}
-      <View style={styles.offScreen}>
-        <ViewShot>
-          <View ref={exportRef}>
-            <PlanExportView
-              plan={currentPlan}
-              deckName={currentDeck?.name ?? ""}
-            />
-          </View>
-        </ViewShot>
-      </View>
     </SafeAreaView>
   );
 }
@@ -521,14 +481,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   container: {
-    ...Platform.select({
-      web: { paddingHorizontal: 40, paddingVertical: Spacing.four },
-      default: {
-        maxWidth: MaxContentWidth,
-        marginHorizontal: 10,
-        paddingVertical: Spacing.two,
-      },
-    }),
+    paddingVertical: Spacing.three,
+    ...ContentLayout,
   },
   row: {
     flexDirection: "row",
@@ -599,11 +553,5 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontWeight: "600",
     fontSize: 14,
-  },
-  offScreen: {
-    position: "absolute",
-    top: -9999,
-    left: -9999,
-    opacity: 0,
   },
 });

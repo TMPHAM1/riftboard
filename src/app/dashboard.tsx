@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import ImportDeckModal from "@/components/ui/ImportDeckModal";
-import { BottomTabInset, MaxContentWidth, Spacing } from "@/constants/theme";
+import { BottomTabInset, ContentLayout, Spacing } from "@/constants/theme";
 import { deleteDeck, loadDecks } from "@/services/deckStorageService";
 import { Deck } from "@/types/rift";
 import { useTheme } from "@/hooks/use-theme";
@@ -144,9 +144,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   container: {
-    maxWidth: MaxContentWidth,
     flexGrow: 1,
-    marginHorizontal: 10,
+    ...ContentLayout,
   },
   titleContainer: {
     gap: Spacing.three,

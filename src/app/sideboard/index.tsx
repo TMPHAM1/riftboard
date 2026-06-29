@@ -1,12 +1,13 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import ExportPlansModal from "@/components/ui/ExportPlansModal";
 import ImportDeckModal from "@/components/ui/ImportDeckModal";
 import NamePromptModal from "@/components/ui/NamePromptModal";
-import { BottomTabInset, MaxContentWidth, Spacing } from "@/constants/theme";
+import { BottomTabInset, ContentLayout, Spacing } from "@/constants/theme";
 import { deleteDeck, loadDecks, updateSideboardPlans } from "@/services/deckStorageService";
 import { Deck, SideBoardPlan } from "@/types/rift";
 import { useFocusEffect, useRouter } from "expo-router";
-import { ChevronDown, ChevronRight, CirclePlus, Pencil, Plus, Trash2 } from "lucide-react-native";
+import { ChevronDown, ChevronRight, CirclePlus, Pencil, Plus, Share2, Trash2 } from "lucide-react-native";
 import { useCallback, useEffect, useState } from "react";
 import { Alert, Platform, Pressable, ScrollView, StyleSheet, TextInput } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
@@ -21,9 +22,10 @@ interface DeckRowProps {
   onPlanAdded: (updated: Deck) => void;
   onEditDeck: (deck: Deck) => void;
   onDeleteDeck: (deck: Deck) => void;
+  onExportDeck: (deck: Deck) => void;
 }
 
-function DeckRow({ deck, onPlanAdded, onEditDeck, onDeleteDeck }: DeckRowProps) {
+function DeckRow({ deck, onPlanAdded, onEditDeck, onDeleteDeck, onExportDeck }: DeckRowProps) {
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [showNamePrompt, setShowNamePrompt] = useState(false);
@@ -77,6 +79,14 @@ function DeckRow({ deck, onPlanAdded, onEditDeck, onDeleteDeck }: DeckRowProps) 
             <ThemedText themeColor="textSecondary">
               {plans.length} {plans.length === 1 ? "plan" : "plans"}
             </ThemedText>
+            {plans.length > 0 && (
+              <Pressable
+                hitSlop={10}
+                onPress={(e) => { e.stopPropagation(); onExportDeck(deck); }}
+              >
+                <Share2 size={16} color="#888" />
+              </Pressable>
+            )}
             <Pressable
               hitSlop={10}
               onPress={(e) => { e.stopPropagation(); onEditDeck(deck); }}
@@ -229,6 +239,8 @@ export default function SideboardIndexScreen() {
   const [showImport, setShowImport] = useState(false);
   // When non-null, ImportDeckModal opens in edit mode for this deck
   const [deckToEdit, setDeckToEdit] = useState<Deck | undefined>(undefined);
+  // When non-null, ExportPlansModal opens for this deck
+  const [exportDeck, setExportDeck] = useState<Deck | null>(null);
 
   const refreshDecks = () => loadDecks().then(setDecks);
 
@@ -268,6 +280,7 @@ export default function SideboardIndexScreen() {
                     setDeckToEdit(d);
                     setShowImport(true);
                   }}
+                  onExportDeck={(d) => setExportDeck(d)}
                   onDeleteDeck={(d) => {
                     Alert.alert(
                       "Delete Deck",
@@ -318,6 +331,13 @@ export default function SideboardIndexScreen() {
           setDeckToEdit(undefined);
         }}
       />
+
+      {/* Deck-level export — select plans, preview, then export as PDF or image */}
+      <ExportPlansModal
+        visible={exportDeck !== null}
+        deck={exportDeck}
+        onClose={() => setExportDeck(null)}
+      />
     </>
   );
 }
@@ -327,10 +347,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingVertical: Spacing.three,
-    ...Platform.select({
-      web: { maxWidth: 1200, marginHorizontal: "auto", paddingHorizontal: 40 },
-      default: { maxWidth: MaxContentWidth, marginHorizontal: 10 },
-    }),
+    ...ContentLayout,
   },
   emptyText: { textAlign: "center", marginTop: Spacing.six },
 
