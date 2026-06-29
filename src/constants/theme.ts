@@ -5,7 +5,7 @@
 
 import '@/global.css';
 
-import { Platform } from 'react-native';
+import { Platform, type ViewStyle } from 'react-native';
 
 export const Colors = {
   light: {
@@ -16,11 +16,11 @@ export const Colors = {
     textSecondary: '#60646C',
   },
   dark: {
-    text: '#ffffff',
-    background: '#10023d',
-    backgroundElement: '#212225',
-    backgroundSelected: '#2E3135',
-    textSecondary: '#B0B4BA',
+      text: '#000000',
+    background: '#ffffff',
+    backgroundElement: '#F0F0F3',
+    backgroundSelected: '#E0E1E6',
+    textSecondary: '#60646C',
   },
 } as const;
 
@@ -63,3 +63,11 @@ export const Spacing = {
 
 export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
 export const MaxContentWidth = 800;
+
+// Shared responsive content column. Spread into a screen's container style so
+// every page lines up: phones use the full width (minus a small gutter), while
+// desktop/web takes ~80% — capped so very large screens don't sprawl edge to edge.
+export const ContentLayout = (Platform.select({
+  web: { width: "65%", maxWidth: 1200, marginHorizontal: "auto" },
+  default: { maxWidth: MaxContentWidth, marginHorizontal: 10 },
+}) ?? {}) as ViewStyle;

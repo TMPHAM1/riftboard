@@ -1,24 +1,38 @@
-import { Platform, ScrollView, StyleSheet } from "react-native";
+import { Platform, ScrollView, StyleSheet, Alert, Pressable } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { BottomTabInset, MaxContentWidth, Spacing } from "@/constants/theme";
-import { dummyDeckList } from "@/data/mockDeckData";
+import ImportDeckModal from "@/components/ui/ImportDeckModal";
+import { BottomTabInset, ContentLayout, Spacing } from "@/constants/theme";
+import { deleteDeck, loadDecks } from "@/services/deckStorageService";
+import { Deck } from "@/types/rift";
 import { useTheme } from "@/hooks/use-theme";
-import {
-  CirclePlus,
-  LayoutDashboard,
-  PanelRightClose,
-} from "lucide-react-native";
+import { useFocusEffect } from "expo-router";
+import { useCallback, useState } from "react";
+import { CirclePlus, LayoutDashboard, PanelRightClose, Trash2 } from "lucide-react-native";
 
-export default function TabTwoScreen() {
+export default function DashboardScreen() {
   const safeAreaInsets = useSafeAreaInsets();
   const insets = {
     ...safeAreaInsets,
     bottom: safeAreaInsets.bottom + BottomTabInset + Spacing.three,
   };
   const theme = useTheme();
+
+  const [decks, setDecks] = useState<Deck[]>([]);
+  const [showImport, setShowImport] = useState(false);
+
+  const refreshDecks = () => loadDecks().then(setDecks);
+
+  // useFocusEffect re-runs whenever this screen is focused.
+  // This means the deck list stays in sync even if a deck was imported
+  // or deleted while on another tab — no stale data on return.
+  useFocusEffect(
+    useCallback(() => {
+      refreshDecks();
+    }, []),
+  );
 
   const contentPlatformStyle = Platform.select({
     android: {
@@ -33,56 +47,85 @@ export default function TabTwoScreen() {
     },
   });
 
-  return (
-    <ScrollView
-      style={[styles.scrollView, { backgroundColor: theme.background }]}
-      contentInset={insets}
-      contentContainerStyle={[styles.contentContainer, contentPlatformStyle]}
-    >
-      <ThemedView style={styles.container}>
-        {/* Title  */}
-        <ThemedView style={styles.titleContainer}>
-          <ThemedText style={styles.centerText}>Get Started</ThemedText>
-        </ThemedView>
-        {/* Quick Start Row */}
-        <ThemedView style={styles.row}>
-          <ThemedView style={styles["quickstart-button"]}>
-            <CirclePlus
-              style={{ marginTop: "auto", marginHorizontal: "auto" }}
-            />
-            <ThemedText style={styles.centerText}>Create Deck</ThemedText>
-          </ThemedView>
-          <ThemedView style={styles["quickstart-button"]}>
-            <LayoutDashboard
-              style={{ marginTop: "auto", marginHorizontal: "auto" }}
-            />
-            <ThemedText style={styles.centerText}>Manage Sideboard</ThemedText>
-          </ThemedView>
-          <ThemedView style={styles["quickstart-button"]}>
-            <PanelRightClose
-              style={{ marginTop: "auto", marginHorizontal: "auto" }}
-            />
+  const handleDelete = (deck: Deck) => {
+    Alert.alert(
+      "Delete Deck",
+      `Remove "${deck.name}" from local storage?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            await deleteDeck(deck.id);
+            refreshDecks();
+          },
+        },
+      ],
+    );
+  };
 
-            <ThemedText style={styles.centerText}>
-              Sideboard Performance
-            </ThemedText>
+  return (
+    <>
+      <ScrollView
+        style={[styles.scrollView, { backgroundColor: theme.background }]}
+        contentInset={insets}
+        contentContainerStyle={[styles.contentContainer, contentPlatformStyle]}
+      >
+        <ThemedView style={styles.container}>
+          {/* Title */}
+          <ThemedView style={styles.titleContainer}>
+            <ThemedText style={styles.centerText}>Get Started</ThemedText>
+          </ThemedView>
+
+          {/* Quick Start Row */}
+          <ThemedView style={styles.row}>
+            <Pressable style={styles.quickstartButton} onPress={() => setShowImport(true)}>
+              <CirclePlus style={{ marginTop: "auto", marginHorizontal: "auto" }} />
+              <ThemedText style={styles.centerText}>Import Deck</ThemedText>
+            </Pressable>
+            <ThemedView style={styles.quickstartButton}>
+              <LayoutDashboard style={{ marginTop: "auto", marginHorizontal: "auto" }} />
+              <ThemedText style={styles.centerText}>Manage Sideboard</ThemedText>
+            </ThemedView>
+            <ThemedView style={styles.quickstartButton}>
+              <PanelRightClose style={{ marginTop: "auto", marginHorizontal: "auto" }} />
+              <ThemedText style={styles.centerText}>Sideboard Performance</ThemedText>
+            </ThemedView>
+          </ThemedView>
+
+          {/* Recent Decks */}
+          <ThemedView style={styles.recentDecksContainer}>
+            <ThemedText>Recent Decks</ThemedText>
+            {decks.length === 0 ? (
+              <ThemedText themeColor="textSecondary" style={{ marginTop: 8 }}>
+                No decks yet — tap Import Deck to get started.
+              </ThemedText>
+            ) : (
+              decks.map((deck) => (
+                <ThemedView key={deck.id} style={styles.deckRow}>
+                  <ThemedView style={{ flex: 1 }}>
+                    <ThemedText type="smallBold">{deck.name}</ThemedText>
+                    <ThemedText themeColor="textSecondary">
+                      {deck.total_cards} cards · {(deck.sideboard_plans ?? []).length} sideboard plans
+                    </ThemedText>
+                  </ThemedView>
+                  <Pressable hitSlop={8} onPress={() => handleDelete(deck)}>
+                    <Trash2 size={18} color="#A32D2D" />
+                  </Pressable>
+                </ThemedView>
+              ))
+            )}
           </ThemedView>
         </ThemedView>
-        {/* Recent Decks row */}
-        <ThemedView style={styles.recentDecksContainer}>
-          {/* Recent Deck Title */}
-          <ThemedText>Recent Decks</ThemedText>
-          {/* Recent Deck Row  */}
-          <ThemedView>
-            {dummyDeckList.map((deck) => (
-              <ThemedView key={deck.id}>
-                <ThemedText>{deck.name}</ThemedText>
-              </ThemedView>
-            ))}
-          </ThemedView>
-        </ThemedView>
-      </ThemedView>
-    </ScrollView>
+      </ScrollView>
+
+      <ImportDeckModal
+        visible={showImport}
+        onClose={() => setShowImport(false)}
+        onImported={() => refreshDecks()}
+      />
+    </>
   );
 }
 
@@ -101,9 +144,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   container: {
-    maxWidth: MaxContentWidth,
     flexGrow: 1,
-    marginHorizontal: 10,
+    ...ContentLayout,
   },
   titleContainer: {
     gap: Spacing.three,
@@ -111,60 +153,35 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.four,
     paddingVertical: Spacing.six,
   },
-  pressed: {
-    opacity: 0.7,
-  },
-  linkButton: {
-    flexDirection: "row",
-    paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.two,
-    borderRadius: Spacing.five,
-    justifyContent: "center",
-    gap: Spacing.one,
-    alignItems: "center",
-  },
-  sectionsWrapper: {
-    gap: Spacing.five,
-    paddingHorizontal: Spacing.four,
-    paddingTop: Spacing.three,
-  },
-  collapsibleContent: {
-    alignItems: "center",
-  },
-  imageTutorial: {
-    width: "100%",
-    aspectRatio: 296 / 171,
-    borderRadius: Spacing.three,
-    marginTop: Spacing.two,
-  },
-  imageReact: {
-    width: 100,
-    height: 100,
-    alignSelf: "center",
-  },
   row: {
     flexDirection: "row",
-    display: "flex",
     justifyContent: "space-around",
     gap: 5,
   },
-  recentDecksContainer: {
-    paddingVertical: 20,
-    marginVertical: 10,
-    paddingLeft: 5,
-    borderColor: "black",
-    boxShadow: "10 20 10 10",
-    borderWidth: 2,
-  },
-  "quickstart-button": {
+  quickstartButton: {
     width: "30%",
     minHeight: 150,
     flexDirection: "column",
-    display: "flex",
     borderWidth: 2,
     borderColor: "black",
     alignContent: "center",
     justifyContent: "center",
     textAlign: "center",
+  },
+  recentDecksContainer: {
+    paddingVertical: 16,
+    marginVertical: 10,
+    paddingLeft: 12,
+    paddingRight: 12,
+    borderColor: "black",
+    borderWidth: 2,
+    gap: 8,
+  },
+  deckRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: "#e0e0e0",
   },
 });

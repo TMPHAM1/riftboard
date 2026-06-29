@@ -8,7 +8,7 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Collapsible } from "@/components/ui/collapsible";
 import { WebBadge } from "@/components/web-badge";
-import { BottomTabInset, MaxContentWidth, Spacing } from "@/constants/theme";
+import { BottomTabInset, ContentLayout, Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 
 export default function TabTwoScreen() {
@@ -153,8 +153,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   container: {
-    maxWidth: MaxContentWidth,
-    flexGrow: 1,
+    flex: 1,
+    ...ContentLayout,
   },
   titleContainer: {
     gap: Spacing.three,
