@@ -131,7 +131,7 @@ export default function ExportPlansModal({ visible, deck, onClose }: Props) {
           <View style={styles.header}>
             <Text style={styles.title}>Export Plans</Text>
             <Pressable onPress={onClose} hitSlop={12}>
-              <X size={18} color="#555" />
+              <X size={18} color="#B3C9D1" />
             </Pressable>
           </View>
           <Text style={styles.subtitle}>{deck?.name}</Text>
@@ -152,7 +152,7 @@ export default function ExportPlansModal({ visible, deck, onClose }: Props) {
                     <View
                       style={[styles.checkbox, checked && styles.checkboxOn]}
                     >
-                      {checked && <Check size={13} color="#fff" />}
+                      {checked && <Check size={13} color="#013952" />}
                     </View>
                     <Text style={styles.checkLabel} numberOfLines={1}>
                       {plan.vs}
@@ -173,12 +173,12 @@ export default function ExportPlansModal({ visible, deck, onClose }: Props) {
             onPress={() => setShowPreview(true)}
             disabled={selectedPlans.length === 0}
           >
-            <Eye size={16} color="#555" />
+            <Eye size={16} color="#B3C9D1" />
             <Text style={styles.previewRowText}>
               Preview {selectedPlans.length}{" "}
               {selectedPlans.length === 1 ? "plan" : "plans"}
             </Text>
-            <ChevronRight size={16} color="#aaa" />
+            <ChevronRight size={16} color="#B3C9D1" />
           </Pressable>
 
           {/* Actions */}
@@ -200,8 +200,8 @@ export default function ExportPlansModal({ visible, deck, onClose }: Props) {
               onPress={handlePdf}
               disabled={!canExport}
             >
-              <FileText size={16} color="#fff" />
-              <Text style={styles.actionText}>Print / PDF</Text>
+              <FileText size={16} color="#013952" />
+              <Text style={[styles.actionText, styles.actionTextPrimary]}>Print / PDF</Text>
             </Pressable>
           </View>
         </View>
@@ -223,7 +223,7 @@ export default function ExportPlansModal({ visible, deck, onClose }: Props) {
           <View style={styles.previewScreenHeader}>
             <Text style={styles.title}>Preview</Text>
             <Pressable onPress={() => setShowPreview(false)} hitSlop={12}>
-              <X size={20} color="#555" />
+              <X size={20} color="#B3C9D1" />
             </Pressable>
           </View>
           <ScrollView contentContainerStyle={styles.previewScreenBody}>
@@ -263,8 +263,10 @@ const styles = StyleSheet.create({
     width: "100%",
     maxWidth: 420,
     maxHeight: "85%",
-    backgroundColor: "#fff",
+    backgroundColor: "#0A4A63",
     borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#1C5E78",
     padding: Spacing.three,
     gap: Spacing.two,
   },
@@ -275,11 +277,11 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
-  title: { fontSize: 16, fontWeight: "600" },
-  subtitle: { fontSize: 13, color: "#888", marginTop: -4 },
+  title: { fontSize: 16, fontWeight: "600", color: "#FFFFFF" },
+  subtitle: { fontSize: 13, color: "#B3C9D1", marginTop: -4 },
   emptyText: {
     fontSize: 14,
-    color: "#888",
+    color: "#B3C9D1",
     paddingVertical: Spacing.three,
     textAlign: "center",
   },
@@ -288,38 +290,40 @@ const styles = StyleSheet.create({
   checkRow: {
     flexDirection: "row",
     alignItems: "center",
+    minHeight: 44,
     gap: Spacing.two,
     paddingVertical: 8,
   },
   checkbox: {
-    width: 20,
-    height: 20,
+    width: 22,
+    height: 22,
     borderRadius: 5,
     borderWidth: 1.5,
-    borderColor: "#bbb",
+    borderColor: "#7FA3B0",
     alignItems: "center",
     justifyContent: "center",
   },
-  checkboxOn: { backgroundColor: "#007AFF", borderColor: "#007AFF" },
-  checkLabel: { flex: 1, fontSize: 14, color: "#222" },
+  checkboxOn: { backgroundColor: "#E78D17", borderColor: "#E78D17" },
+  checkLabel: { flex: 1, fontSize: 14, color: "#FFFFFF" },
 
   // Tappable preview summary row
   previewRow: {
     flexDirection: "row",
     alignItems: "center",
+    minHeight: 48,
     gap: Spacing.two,
     paddingVertical: 12,
     paddingHorizontal: 12,
-    backgroundColor: "#F3F4F6",
+    backgroundColor: "#013952",
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: "#1C5E78",
   },
   previewRowDisabled: { opacity: 0.4 },
-  previewRowText: { flex: 1, fontSize: 14, color: "#333", fontWeight: "500" },
+  previewRowText: { flex: 1, fontSize: 14, color: "#FFFFFF", fontWeight: "500" },
 
-  // Full-size preview screen
-  previewScreen: { flex: 1, backgroundColor: "#fff" },
+  // Full-size preview screen — dark chrome, the export sheet itself stays white.
+  previewScreen: { flex: 1, backgroundColor: "#013952" },
   previewScreenHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -327,7 +331,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.two,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#E5E7EB",
+    borderBottomColor: "#1C5E78",
   },
   previewScreenBody: { padding: Spacing.three, alignItems: "center" },
 
@@ -340,15 +344,17 @@ const styles = StyleSheet.create({
   actionBtn: {
     flexDirection: "row",
     alignItems: "center",
+    minHeight: 44,
     gap: 6,
-    backgroundColor: "#555",
+    backgroundColor: "#11607F",
     borderRadius: 10,
     paddingHorizontal: 16,
     paddingVertical: 10,
   },
-  actionBtnPrimary: { backgroundColor: "#007AFF" },
+  actionBtnPrimary: { backgroundColor: "#E78D17" },
   actionBtnDisabled: { opacity: 0.4 },
-  actionText: { color: "#fff", fontSize: 14, fontWeight: "600" },
+  actionText: { color: "#FFFFFF", fontSize: 14, fontWeight: "600" },
+  actionTextPrimary: { color: "#013952", fontWeight: "700" },
 
   offScreen: {
     position: "absolute",

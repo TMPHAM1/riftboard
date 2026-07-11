@@ -4,74 +4,191 @@ import { RiftCard } from "@/types/rift";
 const LEGENDS_CACHE_KEY = "riftboard:legends";
 const LEGENDS_CACHE_TTL = 24 * 60 * 60 * 1000;
 
+// A specific legend printing, e.g. { name: "Master Yi - Wuju Master", image_url }.
+export interface LegendVersion {
+  name: string;
+  image_url?: string;
+}
+
 export class RiftAPI {
   private static readonly BASE_URL = "https://api.riftcodex.com";
 
   private static legendsCache: string[] | null = null;
+  private static legendImagesCache: Record<string, string> | null = null;
+  private static legendVersionsCache: LegendVersion[] | null = null;
+  // Shared in-flight fetch so concurrent callers don't each paginate the API.
+  private static legendDataPromise: Promise<{
+    names: string[];
+    images: Record<string, string>;
+    versions: LegendVersion[];
+  }> | null = null;
 
+  // Base legend names (deduped per hero), sorted. Backed by the shared cache.
   static async getLegends(): Promise<string[]> {
-    if (this.legendsCache) return this.legendsCache;
+    return (await this.loadLegendData()).names;
+  }
 
-    // Reuse AsyncStorage cache if fetched within the last 24h
+  // Map of base legend name → card image URL.
+  static async getLegendImages(): Promise<Record<string, string>> {
+    return (await this.loadLegendData()).images;
+  }
+
+  // Every specific legend printing (full names, incl. multiple versions of a
+  // hero like the two Master Yi legends), sorted by name.
+  static async getLegendVersions(): Promise<LegendVersion[]> {
+    return (await this.loadLegendData()).versions;
+  }
+
+  // Map of full legend printing name → image URL (for opponent thumbnails).
+  static async getLegendVersionImages(): Promise<Record<string, string>> {
+    const versions = (await this.loadLegendData()).versions;
+    const map: Record<string, string> = {};
+    for (const v of versions) if (v.image_url) map[v.name] = v.image_url;
+    return map;
+  }
+
+  // Returns legend data from the in-memory cache, or kicks off a single shared
+  // fetch. Concurrent callers (e.g. getLegendImages + getLegendVersionImages)
+  // await the same promise instead of paginating the API twice.
+  private static async loadLegendData(): Promise<{
+    names: string[];
+    images: Record<string, string>;
+    versions: LegendVersion[];
+  }> {
+    if (this.legendsCache && this.legendImagesCache && this.legendVersionsCache) {
+      return {
+        names: this.legendsCache,
+        images: this.legendImagesCache,
+        versions: this.legendVersionsCache,
+      };
+    }
+    if (!this.legendDataPromise) {
+      this.legendDataPromise = this.fetchLegendData();
+    }
+    try {
+      return await this.legendDataPromise;
+    } finally {
+      this.legendDataPromise = null;
+    }
+  }
+
+  private static async fetchLegendData(): Promise<{
+    names: string[];
+    images: Record<string, string>;
+    versions: LegendVersion[];
+  }> {
+    // Reuse AsyncStorage cache if fresh AND it has the versions field
     try {
       const raw = await AsyncStorage.getItem(LEGENDS_CACHE_KEY);
       if (raw) {
-        const { names, fetched_at } = JSON.parse(raw);
-        if (Date.now() - fetched_at < LEGENDS_CACHE_TTL) {
-          this.legendsCache = names;
-          return names;
+        const parsed = JSON.parse(raw);
+        if (
+          parsed.names?.length > 0 &&   // ignore a previously-cached empty result
+          parsed.images &&
+          parsed.versions &&
+          Date.now() - parsed.fetched_at < LEGENDS_CACHE_TTL
+        ) {
+          this.legendsCache = parsed.names;
+          this.legendImagesCache = parsed.images;
+          this.legendVersionsCache = parsed.versions;
+          return {
+            names: parsed.names,
+            images: parsed.images,
+            versions: parsed.versions,
+          };
         }
       }
     } catch {}
 
-    // Fetch fresh — paginate all cards, keep base champion names only
-    const seen = new Set<string>();
-    const names: string[] = [];
-    let page = 1;
+    // Fetch page 1 to learn the total, then pull the rest in parallel.
     const size = 100;
-    let totalPages = 1;
-
+    const allItems: any[] = [];
     try {
-      do {
-        const res = await fetch(`${this.BASE_URL}/cards?page=${page}&size=${size}`);
-        if (!res.ok) break;
-        const data = await res.json();
-        totalPages = Math.ceil((data.total ?? 0) / size);
-
-        for (const card of (data.items ?? [])) {
-          if (
-            card.classification?.type === "Legend" &&
-            card.set?.set_id !== "OPP" &&        // exclude Metal/Promo variants
-            !card.metadata?.alternate_art &&
-            !card.metadata?.signature &&
-            !card.metadata?.overnumbered
-          ) {
-            // "Irelia - Blade Dancer" → "Irelia"
-            const baseName = (card.name as string).split(" - ")[0].trim();
-            if (!seen.has(baseName)) {
-              seen.add(baseName);
-              names.push(baseName);
-            }
-          }
+      const first = await fetch(`${this.BASE_URL}/cards?page=1&size=${size}`);
+      if (first.ok) {
+        const data = await first.json();
+        allItems.push(...(data.items ?? []));
+        const totalPages = Math.ceil((data.total ?? 0) / size);
+        if (totalPages > 1) {
+          const rest = await Promise.all(
+            Array.from({ length: totalPages - 1 }, (_, i) =>
+              fetch(`${this.BASE_URL}/cards?page=${i + 2}&size=${size}`)
+                .then((r) => (r.ok ? r.json() : { items: [] }))
+                .then((d) => d.items ?? [])
+                .catch(() => []),
+            ),
+          );
+          for (const items of rest) allItems.push(...items);
         }
-        page++;
-      } while (page <= totalPages);
+      }
     } catch (err) {
       console.error("Failed to fetch legends:", err);
     }
 
+    const seen = new Set<string>();
+    const names: string[] = [];
+    const images: Record<string, string> = {};
+    const versions: LegendVersion[] = [];
+    const versionSeen = new Set<string>();
+    // Tracks heroes whose stored image is from a "canonical" (non-parenthetical)
+    // printing, so a later "(Starter)"-style variant won't overwrite it.
+    const canonicalImg = new Set<string>();
+
+    for (const card of allItems) {
+      if (
+        card.classification?.type === "Legend" &&
+        card.set?.set_id !== "OPP" &&        // exclude Metal/Promo variants
+        !card.metadata?.alternate_art &&
+        !card.metadata?.signature &&
+        !card.metadata?.overnumbered
+      ) {
+        const fullName = (card.name as string).trim();
+        const url = card.media?.image_url;
+
+        // Version-level entry: keep every distinct printing (full name).
+        if (!versionSeen.has(fullName)) {
+          versionSeen.add(fullName);
+          versions.push({ name: fullName, image_url: url });
+        }
+
+        // "Irelia - Blade Dancer" → "Irelia". Collapses every printing of a
+        // hero (incl. the two Master Yi legends) to one base entry.
+        const baseName = fullName.split(" - ")[0].trim();
+        if (!seen.has(baseName)) {
+          seen.add(baseName);
+          names.push(baseName);
+        }
+        // Prefer a canonical printing for the base thumbnail: skip
+        // parenthetical variants like "(Starter)" when a plain one exists.
+        if (url) {
+          const canonical = !fullName.includes("(");
+          if (!(baseName in images) || (canonical && !canonicalImg.has(baseName))) {
+            images[baseName] = url;
+            if (canonical) canonicalImg.add(baseName);
+          }
+        }
+      }
+    }
+
     names.sort();
-    this.legendsCache = names;
+    versions.sort((a, b) => a.name.localeCompare(b.name));
 
-    // Persist so next session skips the full paginated fetch
-    try {
-      await AsyncStorage.setItem(
-        LEGENDS_CACHE_KEY,
-        JSON.stringify({ names, fetched_at: Date.now() }),
-      );
-    } catch {}
+    // Only cache a successful (non-empty) result. If the fetch failed/returned
+    // nothing, leave caches unset so the next call retries instead of getting
+    // stuck on an empty result forever.
+    if (names.length > 0) {
+      this.legendsCache = names;
+      this.legendImagesCache = images;
+      this.legendVersionsCache = versions;
+      try {
+        await AsyncStorage.setItem(
+          LEGENDS_CACHE_KEY,
+          JSON.stringify({ names, images, versions, fetched_at: Date.now() }),
+        );
+      } catch {}
+    }
 
-    return names;
+    return { names, images, versions };
   }
 
   // Extract first card from paginated response shape { items: RiftCard[], ... }

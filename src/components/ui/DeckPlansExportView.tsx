@@ -23,9 +23,7 @@ export function PlanBlock({ plan }: PlanBlockProps) {
       <View style={styles.planHeader}>
         <Text style={styles.planName}>{plan.vs}</Text>
         {plan.vsLegend && (
-          <View style={styles.vsTag}>
-            <Text style={styles.vsTagText}>vs {plan.vsLegend}</Text>
-          </View>
+          <Text style={styles.planOpponent}>Opponent: {plan.vsLegend}</Text>
         )}
       </View>
 
@@ -54,11 +52,6 @@ export function PlanBlock({ plan }: PlanBlockProps) {
       {rows.length === 0 && (
         <Text style={styles.emptyText}>No cards in this plan.</Text>
       )}
-
-      <Text style={styles.planFooter}>
-        {plan.out.reduce((s, c) => s + c.quantity, 0)} out ·{" "}
-        {plan.in.reduce((s, c) => s + c.quantity, 0)} in
-      </Text>
     </View>
   );
 }
@@ -102,6 +95,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#111",
     marginBottom: 16,
+    textAlign: "center",
   },
 
   plan: {
@@ -112,22 +106,11 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   planHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    flexWrap: "wrap",
+    gap: 2,
     marginBottom: 8,
   },
-  planName: { fontSize: 16, fontWeight: "700", color: "#111" },
-  vsTag: {
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    backgroundColor: "#FEF3C7",
-    borderRadius: 5,
-    borderWidth: 1,
-    borderColor: "#F59E0B",
-  },
-  vsTagText: { fontSize: 11, color: "#92400E", fontWeight: "600" },
+  planName: { fontSize: 17, fontWeight: "700", color: "#111" },
+  planOpponent: { fontSize: 12, fontWeight: "600", color: "#555" },
 
   divider: { height: 1, backgroundColor: "#E5E7EB" },
   columnRow: { flexDirection: "row", paddingVertical: 4 },
@@ -150,6 +133,5 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     textAlign: "center",
   },
-  planFooter: { fontSize: 10, color: "#aaa", textAlign: "right", marginTop: 8 },
   footer: { fontSize: 11, color: "#aaa", textAlign: "right", marginTop: 4 },
 });

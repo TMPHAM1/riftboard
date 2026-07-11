@@ -4,8 +4,11 @@ import ExportPlansModal from "@/components/ui/ExportPlansModal";
 import ImportDeckModal from "@/components/ui/ImportDeckModal";
 import NamePromptModal from "@/components/ui/NamePromptModal";
 import { BottomTabInset, ContentLayout, Spacing } from "@/constants/theme";
+import { RiftAPI } from "@/api/riftApi";
 import { deleteDeck, loadDecks, updateSideboardPlans } from "@/services/deckStorageService";
+import { deckCoverUrl } from "@/utils/deckImage";
 import { Deck, SideBoardPlan } from "@/types/rift";
+import { Image } from "expo-image";
 import { useFocusEffect, useRouter } from "expo-router";
 import { ChevronDown, ChevronRight, CirclePlus, Pencil, Plus, Share2, Trash2 } from "lucide-react-native";
 import { useCallback, useEffect, useState } from "react";
@@ -23,15 +26,17 @@ interface DeckRowProps {
   onEditDeck: (deck: Deck) => void;
   onDeleteDeck: (deck: Deck) => void;
   onExportDeck: (deck: Deck) => void;
+  legendImages: Record<string, string>;
 }
 
-function DeckRow({ deck, onPlanAdded, onEditDeck, onDeleteDeck, onExportDeck }: DeckRowProps) {
+function DeckRow({ deck, onPlanAdded, onEditDeck, onDeleteDeck, onExportDeck, legendImages }: DeckRowProps) {
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [showNamePrompt, setShowNamePrompt] = useState(false);
   const [planToRename, setPlanToRename] = useState<SideBoardPlan | null>(null);
   const router = useRouter();
   const plans = deck.sideboard_plans ?? [];
+  const coverUrl = deckCoverUrl(deck);
 
   useEffect(() => { if (!open) setSearchQuery(""); }, [open]);
 
@@ -70,9 +75,16 @@ function DeckRow({ deck, onPlanAdded, onEditDeck, onDeleteDeck, onExportDeck }: 
         >
           <ThemedView style={styles.deckHeaderLeft}>
             {open
-              ? <ChevronDown size={18} color="#555" />
-              : <ChevronRight size={18} color="#555" />}
-            <ThemedText type="smallBold">{deck.name}</ThemedText>
+              ? <ChevronDown size={18} color="#B3C9D1" />
+              : <ChevronRight size={18} color="#B3C9D1" />}
+            {coverUrl ? (
+              <Image source={{ uri: coverUrl }} style={styles.cover} contentFit="contain" />
+            ) : (
+              <ThemedView style={[styles.cover, styles.coverFallback]} />
+            )}
+            <ThemedText type="smallBold" style={styles.deckName} numberOfLines={1}>
+              {deck.name}
+            </ThemedText>
           </ThemedView>
 
           <ThemedView style={styles.deckHeaderRight}>
@@ -84,14 +96,14 @@ function DeckRow({ deck, onPlanAdded, onEditDeck, onDeleteDeck, onExportDeck }: 
                 hitSlop={10}
                 onPress={(e) => { e.stopPropagation(); onExportDeck(deck); }}
               >
-                <Share2 size={16} color="#888" />
+                <Share2 size={16} color="#E78D17" />
               </Pressable>
             )}
             <Pressable
               hitSlop={10}
               onPress={(e) => { e.stopPropagation(); onEditDeck(deck); }}
             >
-              <Pencil size={16} color="#888" />
+              <Pencil size={16} color="#B3C9D1" />
             </Pressable>
             <Pressable
               hitSlop={10}
@@ -100,7 +112,7 @@ function DeckRow({ deck, onPlanAdded, onEditDeck, onDeleteDeck, onExportDeck }: 
                 onDeleteDeck(deck);
               }}
             >
-              <Trash2 size={16} color="#A32D2D" />
+              <Trash2 size={16} color="#F87171" />
             </Pressable>
           </ThemedView>
         </Pressable>
@@ -116,7 +128,7 @@ function DeckRow({ deck, onPlanAdded, onEditDeck, onDeleteDeck, onExportDeck }: 
                   value={searchQuery}
                   onChangeText={setSearchQuery}
                   placeholder="Search by name or opponent…"
-                  placeholderTextColor="#aaa"
+                  placeholderTextColor="#7FA3B0"
                   clearButtonMode="while-editing"
                 />
               )}
@@ -138,15 +150,17 @@ function DeckRow({ deck, onPlanAdded, onEditDeck, onDeleteDeck, onExportDeck }: 
                     }
                   >
                     <ThemedView style={styles.planRowContent}>
-                      <ThemedView style={{ flex: 1 }}>
-                        <ThemedText type="small">{plan.vs}</ThemedText>
-                        {plan.vsLegend && (
-                          <ThemedView style={styles.vsLegendTag}>
-                            <ThemedText style={styles.vsLegendTagText}>
-                              vs {plan.vsLegend}
-                            </ThemedText>
-                          </ThemedView>
-                        )}
+                      {plan.vsLegend && legendImages[plan.vsLegend] ? (
+                        <Image
+                          source={{ uri: legendImages[plan.vsLegend] }}
+                          style={styles.oppThumb}
+                          contentFit="contain"
+                        />
+                      ) : (
+                        <ThemedView style={styles.oppThumb} />
+                      )}
+                      <ThemedView style={{ flex: 1, backgroundColor: "transparent" }}>
+                        <ThemedText type="smallBold">{plan.vs}</ThemedText>
                         <ThemedText themeColor="textSecondary" style={styles.planMeta}>
                           {plan.out.length} out · {plan.in.length} in
                         </ThemedText>
@@ -155,7 +169,7 @@ function DeckRow({ deck, onPlanAdded, onEditDeck, onDeleteDeck, onExportDeck }: 
                         hitSlop={10}
                         onPress={(e) => { e.stopPropagation(); setPlanToRename(plan); }}
                       >
-                        <Pencil size={14} color="#888" />
+                        <Pencil size={14} color="#B3C9D1" />
                       </Pressable>
                       <Pressable
                         hitSlop={10}
@@ -179,7 +193,7 @@ function DeckRow({ deck, onPlanAdded, onEditDeck, onDeleteDeck, onExportDeck }: 
                           );
                         }}
                       >
-                        <Trash2 size={14} color="#A32D2D" />
+                        <Trash2 size={14} color="#F87171" />
                       </Pressable>
                     </ThemedView>
                   </Pressable>
@@ -188,7 +202,7 @@ function DeckRow({ deck, onPlanAdded, onEditDeck, onDeleteDeck, onExportDeck }: 
 
               {/* Indented add button — prompts for a name before creating */}
               <Pressable style={styles.addPlanRow} onPress={() => setShowNamePrompt(true)}>
-                <Plus size={14} color="#888" />
+                <Plus size={14} color="#E78D17" />
                 <ThemedText themeColor="textSecondary">Add sideboard plan</ThemedText>
               </Pressable>
             </ThemedView>
@@ -241,8 +255,19 @@ export default function SideboardIndexScreen() {
   const [deckToEdit, setDeckToEdit] = useState<Deck | undefined>(undefined);
   // When non-null, ExportPlansModal opens for this deck
   const [exportDeck, setExportDeck] = useState<Deck | null>(null);
+  // Opponent-legend name → art URL, for the "siding against" thumbnails
+  const [legendImages, setLegendImages] = useState<Record<string, string>>({});
 
   const refreshDecks = () => loadDecks().then(setDecks);
+
+  // Merge base-name and full-version image maps so both new plans (which store a
+  // full printing name) and older plans (which stored the base hero name) resolve.
+  useEffect(() => {
+    Promise.all([
+      RiftAPI.getLegendImages(),
+      RiftAPI.getLegendVersionImages(),
+    ]).then(([base, versions]) => setLegendImages({ ...base, ...versions }));
+  }, []);
 
   // useFocusEffect re-runs every time this screen comes into focus.
   // useEffect([]) only fires on first mount, so navigating away and back
@@ -266,15 +291,30 @@ export default function SideboardIndexScreen() {
           ]}
         >
           <ThemedView style={styles.container}>
+            {/* Import Deck — pinned at the top of the list */}
+            <Pressable
+              style={({ pressed }) => [styles.importBtn, pressed && { opacity: 0.7 }]}
+              onPress={() => {
+                setDeckToEdit(undefined); // import mode (not edit)
+                setShowImport(true);
+              }}
+              accessibilityRole="button"
+              accessibilityLabel="Import a deck"
+            >
+              <CirclePlus size={20} color="#E78D17" />
+              <ThemedText themeColor="textSecondary">Import Deck</ThemedText>
+            </Pressable>
+
             {decks.length === 0 ? (
               <ThemedText themeColor="textSecondary" style={styles.emptyText}>
-                No decks yet — import one below.
+                No decks yet — import one above.
               </ThemedText>
             ) : (
               decks.map((deck) => (
                 <DeckRow
                   key={deck.id}
                   deck={deck}
+                  legendImages={legendImages}
                   onPlanAdded={updateDeckInList}
                   onEditDeck={(d) => {
                     setDeckToEdit(d);
@@ -301,18 +341,6 @@ export default function SideboardIndexScreen() {
                 />
               ))
             )}
-
-            {/* Import Deck — always pinned at the bottom */}
-            <Pressable
-              style={({ pressed }) => [styles.importBtn, pressed && { opacity: 0.7 }]}
-              onPress={() => {
-                setDeckToEdit(undefined); // import mode (not edit)
-                setShowImport(true);
-              }}
-            >
-              <CirclePlus size={20} color="#555" />
-              <ThemedText themeColor="textSecondary">Import Deck</ThemedText>
-            </Pressable>
           </ThemedView>
         </ScrollView>
       </SafeAreaView>
@@ -354,76 +382,91 @@ const styles = StyleSheet.create({
   // Deck card
   deckCard: {
     borderWidth: 1,
-    borderColor: "#ddd",
+    borderColor: "#1C5E78",
     borderRadius: 12,
     marginBottom: Spacing.two,
     overflow: "hidden",
+    backgroundColor: "#0A4A63",
   },
   deckHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    minHeight: 52,
     paddingHorizontal: Spacing.three,
-    paddingVertical: 14,
+    paddingVertical: Spacing.two,
   },
   deckHeaderLeft: {
     flexDirection: "row",
     alignItems: "center",
     gap: Spacing.two,
+    backgroundColor: "transparent",
+    flex: 1,
   },
+  deckName: { flexShrink: 1 },
+  cover: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    backgroundColor: "#013952",
+    borderWidth: 1,
+    borderColor: "#1C5E78",
+  },
+  coverFallback: { backgroundColor: "#013952" },
   deckHeaderRight: {
     flexDirection: "row",
     alignItems: "center",
     gap: Spacing.three,
+    backgroundColor: "transparent",
   },
 
   // Plans inside expanded deck
   plansContainer: {
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: "#e0e0e0",
+    borderTopColor: "#1C5E78",
     paddingTop: Spacing.one,
     paddingBottom: Spacing.two,
+    backgroundColor: "transparent",
   },
   noPlansText: {
     paddingHorizontal: Spacing.five,
     paddingVertical: Spacing.two,
   },
   planRow: {
-    paddingVertical: 12,
+    minHeight: 48,
+    justifyContent: "center",
+    paddingVertical: Spacing.two,
     paddingHorizontal: Spacing.five,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#f0f0f0",
+    borderBottomColor: "#1C5E78",
   },
   planRowContent: {
     flexDirection: "row",
     alignItems: "center",
     gap: Spacing.three,
+    backgroundColor: "transparent",
   },
-  planMeta: { fontSize: 12, marginTop: 2 },
-  vsLegendTag: {
-    alignSelf: "flex-start",
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    backgroundColor: "#FEF3C7",
-    borderRadius: 4,
+  planMeta: { fontSize: 13, marginTop: 2 },
+  oppThumb: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    backgroundColor: "#013952",
     borderWidth: 1,
-    borderColor: "#F59E0B",
-    marginTop: 3,
-    marginBottom: 1,
+    borderColor: "#1C5E78",
   },
-  vsLegendTagText: { fontSize: 11, color: "#92400E" },
   searchInput: {
     marginHorizontal: Spacing.five,
     marginTop: Spacing.two,
     marginBottom: Spacing.one,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    backgroundColor: "#F5F5F5",
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    backgroundColor: "#013952",
     borderRadius: 8,
-    fontSize: 13,
+    fontSize: 14,
     borderWidth: 1,
-    borderColor: "#E0E0E0",
-    color: "#333",
+    borderColor: "#1C5E78",
+    color: "#FFFFFF",
   },
 
   // Indented add-plan row
@@ -431,20 +474,24 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: Spacing.two,
+    minHeight: 48,
     paddingHorizontal: Spacing.five,
-    paddingVertical: 12,
+    paddingVertical: Spacing.two,
     marginTop: 2,
   },
 
-  // Bottom import button
+  // Top import button
   importBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: Spacing.two,
-    marginTop: "auto",
+    minHeight: 52,
+    marginBottom: Spacing.three,
     paddingVertical: Spacing.three,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: "#e0e0e0",
+    borderWidth: 1,
+    borderColor: "#1C5E78",
+    borderRadius: 12,
+    backgroundColor: "#0A4A63",
   },
 });

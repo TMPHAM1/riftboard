@@ -2,7 +2,7 @@ import { Spacing } from '@/constants/theme';
 import { RiftCard } from '@/types/rift';
 import { X } from 'lucide-react-native';
 import { Image, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ThemedText } from '../themed-text';
 import CardStats from './CardStats';
 
@@ -13,13 +13,24 @@ interface Props {
 }
 
 export default function CardPreviewModal({ card, visible, onClose }: Props) {
+  // SafeAreaView doesn't receive insets inside a native Modal — read from
+  // context (which flows through the React tree) and pad manually instead.
+  const insets = useSafeAreaInsets();
+
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose}>
-        <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-          <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
-            <Pressable style={styles.closeBtn} onPress={onClose} hitSlop={8}>
-              <X size={22} color="#000" />
+        <View style={styles.safeArea}>
+          <Pressable
+            style={[styles.sheet, { paddingTop: insets.top, paddingBottom: insets.bottom }]}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <Pressable
+              style={[styles.closeBtn, { top: insets.top + Spacing.two }]}
+              onPress={onClose}
+              hitSlop={8}
+            >
+              <X size={22} color="#FFFFFF" />
             </Pressable>
 
             {card && (
@@ -49,7 +60,7 @@ export default function CardPreviewModal({ card, visible, onClose }: Props) {
               </ScrollView>
             )}
           </Pressable>
-        </SafeAreaView>
+        </View>
       </Pressable>
     </Modal>
   );
@@ -65,7 +76,7 @@ const styles = StyleSheet.create({
   },
   sheet: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#013952',
   },
   closeBtn: {
     position: 'absolute',
@@ -106,6 +117,6 @@ const styles = StyleSheet.create({
   },
   meta: {
     fontSize: 13,
-    color: '#666',
+    color: '#B3C9D1',
   },
 });

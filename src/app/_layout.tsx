@@ -3,7 +3,8 @@ import { useColorScheme, View } from "react-native";
 
 import { AnimatedSplashOverlay } from "@/components/animated-icon";
 import { Colors } from "@/constants/theme";
-import { LayoutDashboard, PanelLeftDashed } from "lucide-react-native";
+import { LayoutDashboard, PanelLeftDashed, Settings } from "lucide-react-native";
+import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 export default function TabLayout() {
@@ -22,12 +23,17 @@ export default function TabLayout() {
   return (
     <SafeAreaProvider>
       <ThemeProvider value={navTheme}>
+        <StatusBar style="light" />
         <AnimatedSplashOverlay />
         <Tabs
           screenOptions={{
             sceneStyle: { backgroundColor: colors.background },
-            tabBarStyle: { backgroundColor: colors.background },
-            tabBarActiveTintColor: colors.backgroundElement,
+            tabBarStyle: {
+              backgroundColor: colors.background,
+              borderTopColor: colors.border,
+            },
+            tabBarActiveTintColor: colors.accent,
+            tabBarInactiveTintColor: colors.textSecondary,
             header: () => {
               return <View></View>;
             },
@@ -56,11 +62,19 @@ export default function TabLayout() {
               ),
             }}
           />
-          <Tabs.Screen name="settings" options={{ title: "Settings" }} />
+          <Tabs.Screen
+            name="settings"
+            options={{
+              title: "Settings",
+              tabBarIcon: ({ color }) => <Settings color={color} />,
+            }}
+          />
           <Tabs.Screen
             name="sideboard/[planId]"
             options={{ title: "sideboard/[planId]", href: null }}
           />
+          <Tabs.Screen name="legal/privacy" options={{ href: null }} />
+          <Tabs.Screen name="legal/terms" options={{ href: null }} />
         </Tabs>
       </ThemeProvider>
     </SafeAreaProvider>

@@ -61,3 +61,9 @@ export async function deleteDeck(id: string): Promise<void> {
     JSON.stringify(decks.filter((d) => d.id !== id)),
   );
 }
+
+// Wipes all locally-stored decks and sideboard plans. Used by Settings →
+// "Clear local data". Also clears the cached legends list.
+export async function clearAllDecks(): Promise<void> {
+  await AsyncStorage.multiRemove([KEY, 'riftboard:legends']);
+}

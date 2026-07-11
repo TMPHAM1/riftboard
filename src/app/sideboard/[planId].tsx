@@ -5,24 +5,22 @@ import CardPreviewModal from "@/components/ui/CardPreviewModal";
 import ImportDeckModal from "@/components/ui/ImportDeckModal";
 import NamePromptModal from "@/components/ui/NamePromptModal";
 import RowMenu from "@/components/ui/RowMenu";
-import { BottomTabInset, ContentLayout, Spacing } from "@/constants/theme";
-import { RiftAPI } from "@/api/riftApi";
+import { ContentLayout, Spacing } from "@/constants/theme";
+import { RiftAPI, LegendVersion } from "@/api/riftApi";
 import { slotsTotal } from "@/data/mockDeckData";
 import { loadDecks, updateSideboardPlans } from "@/services/deckStorageService";
 import { CardSlot, Deck, RiftCard, SideBoardPlan } from "@/types/rift";
 import { useLocalSearchParams } from "expo-router";
-import { AlertTriangle, Pencil, PlusCircle, PlusSquare } from "lucide-react-native";
+import { AlertTriangle, Copy, Pencil, PlusCircle, PlusSquare } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import {
+  Alert,
   Modal,
   Pressable,
   ScrollView,
   StyleSheet,
 } from "react-native";
-import {
-  SafeAreaView,
-  useSafeAreaInsets,
-} from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const EMPTY_PLAN: SideBoardPlan = { id: "", vs: "", out: [], in: [] };
 
@@ -34,11 +32,10 @@ export default function SideBoardPlanScreen() {
     deckId: string;
   }>();
 
-  const safeAreaInsets = useSafeAreaInsets();
-  const insets = {
-    ...safeAreaInsets,
-    bottom: safeAreaInsets.bottom + BottomTabInset + Spacing.three,
-  };
+  // The scene already sits above the tab bar, so the floating bar only needs a
+  // small gap below the button. Scroll content is padded so rows clear the bar.
+  const barBottom = Spacing.three;
+  const scrollBottomPadding = barBottom + 48 + Spacing.four;
 
   const [decks, setDecks] = useState<Deck[]>([]);
   const [currentDeck, setCurrentDeck] = useState<Deck | null>(null);
@@ -48,12 +45,21 @@ export default function SideBoardPlanScreen() {
   const [showNewDeck, setShowNewDeck] = useState(false);
   const [showNamePrompt, setShowNamePrompt] = useState(false);
   const [showWarningModal, setShowWarningModal] = useState(false);
-  const [legends, setLegends] = useState<string[]>([]);
+  const [legendVersions, setLegendVersions] = useState<LegendVersion[]>([]);
+  // Edits are held locally in `currentPlan` and only written to storage when the
+  // user taps Update. `dirty` tracks whether the draft differs from what's saved.
+  const [dirty, setDirty] = useState(false);
 
-  // Fetch legend names from the API once on mount (cached in-memory after first call)
+  // Load the full list of legend printings once (cached after first call)
   useEffect(() => {
-    RiftAPI.getLegends().then(setLegends);
+    RiftAPI.getLegendVersions().then(setLegendVersions);
   }, []);
+
+  // Selects a saved plan into the editor and clears the dirty flag.
+  const selectPlan = (plan: SideBoardPlan) => {
+    setCurrentPlan(plan);
+    setDirty(false);
+  };
 
   // Load decks from storage on mount
   useEffect(() => {
@@ -66,16 +72,58 @@ export default function SideBoardPlanScreen() {
         target.sideboard_plans?.find((p) => p.id === planId) ??
         target.sideboard_plans?.[0] ??
         EMPTY_PLAN;
-      setCurrentPlan(plan);
+      selectPlan(plan);
     });
   }, [deckId, planId]);
 
-  // Persist plan changes to storage
-  const persistPlan = async (deck: Deck, updatedPlan: SideBoardPlan) => {
-    const plans = (deck.sideboard_plans ?? []).map((p) =>
-      p.id === updatedPlan.id ? updatedPlan : p,
+  // Commit the local draft to storage (the Update button).
+  const handleUpdate = async () => {
+    if (!currentDeck || !currentPlan.id) return;
+    const updatedPlans = (currentDeck.sideboard_plans ?? []).map((p) =>
+      p.id === currentPlan.id ? currentPlan : p,
     );
-    await updateSideboardPlans(deck.id, plans);
+    await updateSideboardPlans(currentDeck.id, updatedPlans);
+    setCurrentDeck({ ...currentDeck, sideboard_plans: updatedPlans });
+    setDirty(false);
+  };
+
+  // If there are unsaved changes, ask whether to save or discard before running
+  // an action that would abandon the current draft (switch/create). Only ever
+  // one draft is held at a time — this is the point where it's resolved.
+  const guardDirty = (proceed: () => void) => {
+    if (!dirty) {
+      proceed();
+      return;
+    }
+    Alert.alert(
+      "Unsaved changes",
+      "You have unsaved changes to this plan. Save them before continuing?",
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "Discard", style: "destructive", onPress: proceed },
+        {
+          text: "Save",
+          onPress: async () => {
+            await handleUpdate();
+            proceed();
+          },
+        },
+      ],
+    );
+  };
+
+  // Duplicate the current plan into a new saved plan, then switch to it.
+  const handleDuplicate = async () => {
+    if (!currentDeck || !currentPlan.id) return;
+    const copy: SideBoardPlan = {
+      ...currentPlan,
+      id: `plan-${Date.now()}`,
+      vs: `${currentPlan.vs} (copy)`,
+    };
+    const updatedPlans = [...(currentDeck.sideboard_plans ?? []), copy];
+    await updateSideboardPlans(currentDeck.id, updatedPlans);
+    setCurrentDeck({ ...currentDeck, sideboard_plans: updatedPlans });
+    selectPlan(copy);
   };
 
   // Dropdown options
@@ -120,7 +168,7 @@ export default function SideBoardPlanScreen() {
       ),
     };
     setCurrentPlan(updated);
-    if (currentDeck) persistPlan(currentDeck, updated);
+    setDirty(true);
   };
 
   const deleteSlot = (sideType: SideKey, index: number) => {
@@ -129,7 +177,7 @@ export default function SideBoardPlanScreen() {
       [sideType]: currentPlan[sideType].filter((_, i) => i !== index),
     };
     setCurrentPlan(updated);
-    if (currentDeck) persistPlan(currentDeck, updated);
+    setDirty(true);
   };
 
   const addSlot = (sideType: SideKey) => {
@@ -138,7 +186,7 @@ export default function SideBoardPlanScreen() {
       [sideType]: [...currentPlan[sideType], { cardId: "", quantity: 1 }],
     };
     setCurrentPlan(updated);
-    if (currentDeck) persistPlan(currentDeck, updated);
+    setDirty(true);
   };
 
   const resolveCard = (
@@ -172,18 +220,23 @@ export default function SideBoardPlanScreen() {
   }
 
   return (
-    <SafeAreaView edges={["top", "bottom"]} style={{ flex: 1 }}>
-      <ScrollView contentContainerStyle={styles.container}>
+    <SafeAreaView edges={["top"]} style={{ flex: 1 }}>
+      <ScrollView
+        contentContainerStyle={[styles.container, { paddingBottom: scrollBottomPadding }]}
+      >
         {/* Deck selector — edit updates current deck, plus imports a new one */}
         <ThemedView style={styles.selectorBlock}>
           <ThemedView style={styles.labelRow}>
             <ThemedText>Deck</ThemedText>
             <ThemedView style={styles.labelActions}>
               <Pressable hitSlop={10} onPress={() => setShowEditDeck(true)}>
-                <Pencil size={16} color="#888" />
+                <Pencil size={16} color="#B3C9D1" />
               </Pressable>
-              <Pressable hitSlop={10} onPress={() => setShowNewDeck(true)}>
-                <PlusCircle size={16} color="#888" />
+              <Pressable
+                hitSlop={10}
+                onPress={() => guardDirty(() => setShowNewDeck(true))}
+              >
+                <PlusCircle size={16} color="#E78D17" />
               </Pressable>
             </ThemedView>
           </ThemedView>
@@ -195,13 +248,15 @@ export default function SideBoardPlanScreen() {
             value={currentDeck.id}
             onChange={(id) => {
               if (id === "__new_deck__") {
-                setShowNewDeck(true);
+                guardDirty(() => setShowNewDeck(true));
                 return;
               }
               const selected = decks.find((d) => d.id === id);
               if (!selected) return;
-              setCurrentDeck(selected);
-              setCurrentPlan(selected.sideboard_plans?.[0] ?? EMPTY_PLAN);
+              guardDirty(() => {
+                setCurrentDeck(selected);
+                selectPlan(selected.sideboard_plans?.[0] ?? EMPTY_PLAN);
+              });
             }}
           />
         </ThemedView>
@@ -211,8 +266,16 @@ export default function SideBoardPlanScreen() {
           <ThemedView style={styles.labelRow}>
             <ThemedText>Sideboard Plan</ThemedText>
             <ThemedView style={styles.labelActions}>
-              <Pressable hitSlop={10} onPress={() => setShowNamePrompt(true)}>
-                <PlusCircle size={18} color="#888" />
+              {currentPlan.id ? (
+                <Pressable hitSlop={10} onPress={handleDuplicate}>
+                  <Copy size={18} color="#B3C9D1" />
+                </Pressable>
+              ) : null}
+              <Pressable
+                hitSlop={10}
+                onPress={() => guardDirty(() => setShowNamePrompt(true))}
+              >
+                <PlusCircle size={18} color="#E78D17" />
               </Pressable>
             </ThemedView>
           </ThemedView>
@@ -224,11 +287,11 @@ export default function SideBoardPlanScreen() {
             value={currentPlan.id || null}
             onChange={(id) => {
               if (id === "__new__") {
-                setShowNamePrompt(true);
+                guardDirty(() => setShowNamePrompt(true));
                 return;
               }
               const selected = plans.find((p) => p.id === id);
-              if (selected) setCurrentPlan(selected);
+              if (selected) guardDirty(() => selectPlan(selected));
             }}
           />
         </ThemedView>
@@ -241,13 +304,17 @@ export default function SideBoardPlanScreen() {
               placeholder="Select opponent's legend…"
               options={[
                 { label: "None", value: "" },
-                ...legends.map((l) => ({ label: l, value: l })),
+                // Keep a legacy/base value selectable if it isn't a known version
+                ...(currentPlan.vsLegend &&
+                !legendVersions.some((v) => v.name === currentPlan.vsLegend)
+                  ? [{ label: currentPlan.vsLegend, value: currentPlan.vsLegend }]
+                  : []),
+                ...legendVersions.map((v) => ({ label: v.name, value: v.name })),
               ]}
               value={currentPlan.vsLegend ?? ""}
               onChange={(val) => {
-                const updated = { ...currentPlan, vsLegend: val || undefined };
-                setCurrentPlan(updated);
-                persistPlan(currentDeck, updated);
+                setCurrentPlan({ ...currentPlan, vsLegend: val || undefined });
+                setDirty(true);
               }}
             />
           </ThemedView>
@@ -297,8 +364,8 @@ export default function SideBoardPlanScreen() {
 
           {outTotal < 8 && (
             <Pressable style={styles.button} onPress={() => addSlot("out")}>
-              <ThemedText>Add Card to Side Out</ThemedText>
-              <PlusSquare size={24} />
+              <ThemedText style={styles.buttonText}>Add Card to Side Out</ThemedText>
+              <PlusSquare size={22} color="#E78D17" />
             </Pressable>
           )}
         </ThemedView>
@@ -357,12 +424,32 @@ export default function SideBoardPlanScreen() {
 
           {inTotal < 8 && (
             <Pressable style={styles.button} onPress={() => addSlot("in")}>
-              <ThemedText>Add Card to Side In</ThemedText>
-              <PlusSquare size={24} />
+              <ThemedText style={styles.buttonText}>Add Card to Side In</ThemedText>
+              <PlusSquare size={22} color="#E78D17" />
             </Pressable>
           )}
         </ThemedView>
       </ScrollView>
+
+      {/* Floating Update bar — always visible, pinned above the tab bar. */}
+      {currentPlan.id ? (
+        <ThemedView style={[styles.floatingBar, { paddingBottom: barBottom }]}>
+          <Pressable
+            style={[styles.updateButton, !dirty && styles.updateButtonDisabled]}
+            onPress={handleUpdate}
+            disabled={!dirty}
+            accessibilityRole="button"
+            accessibilityState={{ disabled: !dirty }}
+            accessibilityLabel="Update sideboard plan"
+          >
+            <ThemedText
+              style={[styles.updateButtonText, !dirty && styles.updateButtonTextDisabled]}
+            >
+              {dirty ? "Update Plan" : "Saved"}
+            </ThemedText>
+          </Pressable>
+        </ThemedView>
+      ) : null}
 
       <CardPreviewModal
         card={previewCard}
@@ -413,7 +500,7 @@ export default function SideBoardPlanScreen() {
           const updatedPlans = [...plans, newPlan];
           updateSideboardPlans(currentDeck.id, updatedPlans);
           setCurrentDeck({ ...currentDeck, sideboard_plans: updatedPlans });
-          setCurrentPlan(newPlan);
+          selectPlan(newPlan);
         }}
       />
 
@@ -436,7 +523,7 @@ export default function SideBoardPlanScreen() {
           loadDecks().then((all) => {
             setDecks(all);
             setCurrentDeck(newDeck);
-            setCurrentPlan(newDeck.sideboard_plans?.[0] ?? EMPTY_PLAN);
+            selectPlan(newDeck.sideboard_plans?.[0] ?? EMPTY_PLAN);
           });
         }}
       />
@@ -445,7 +532,7 @@ export default function SideBoardPlanScreen() {
 }
 
 const styles = StyleSheet.create({
-  countWarning: { color: "#A32D2D" },
+  countWarning: { color: "#F87171" },
   selectorBlock: {
     gap: Spacing.one,
     paddingHorizontal: 10,
@@ -469,8 +556,9 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.one,
   },
   button: {
-    borderWidth: 2,
-    borderColor: "black",
+    minHeight: 48,
+    borderWidth: 1,
+    borderColor: "#E78D17",
     borderRadius: 12,
     paddingHorizontal: 20,
     paddingVertical: 10,
@@ -479,7 +567,30 @@ const styles = StyleSheet.create({
     gap: 10,
     marginVertical: 12,
     alignItems: "center",
+    backgroundColor: "transparent",
   },
+  buttonText: { color: "#E78D17", fontWeight: "600" },
+  floatingBar: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: Spacing.three,
+    paddingTop: Spacing.two,
+    backgroundColor: "#013952",
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: "#1C5E78",
+  },
+  updateButton: {
+    minHeight: 48,
+    borderRadius: 12,
+    backgroundColor: "#E78D17",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  updateButtonDisabled: { backgroundColor: "#1C5E78" },
+  updateButtonText: { color: "#013952", fontWeight: "700", fontSize: 16 },
+  updateButtonTextDisabled: { color: "#B3C9D1" },
   container: {
     paddingVertical: Spacing.three,
     ...ContentLayout,
@@ -525,6 +636,9 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: Spacing.four,
     gap: Spacing.two,
+    backgroundColor: "#0A4A63",
+    borderWidth: 1,
+    borderColor: "#1C5E78",
   },
   warningSheetTitle: {
     fontSize: 15,
@@ -544,14 +658,16 @@ const styles = StyleSheet.create({
   warningCloseBtn: {
     marginTop: Spacing.two,
     alignSelf: "flex-end",
+    minHeight: 44,
+    justifyContent: "center",
     paddingVertical: 8,
     paddingHorizontal: 20,
-    backgroundColor: "#F59E0B",
+    backgroundColor: "#E78D17",
     borderRadius: 8,
   },
   warningCloseBtnText: {
-    color: "#fff",
-    fontWeight: "600",
+    color: "#013952",
+    fontWeight: "700",
     fontSize: 14,
   },
 });

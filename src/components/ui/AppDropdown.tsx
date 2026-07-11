@@ -35,28 +35,38 @@ export default function AppDropdown({
       placeholderStyle={styles.placeholder}
       selectedTextStyle={styles.selectedText}
       containerStyle={styles.listContainer}
+      itemContainerStyle={styles.itemContainer}
+      activeColor={ACTIVE_COLOR}
+      inputSearchStyle={styles.searchInput}
       data={options}
       search={!disableSearch}
-      maxHeight={300}
+      maxHeight={320}
       labelField="label"
       valueField="value"
       placeholder={placeholder}
-      searchPlaceholder="Search..."
+      searchPlaceholder="Search…"
       value={value}
       onChange={(item) => onChange(item.value)}
+      accessibilityLabel={placeholder}
       // Right side of the closed dropdown: stats (if card selected) + chevron
       renderRightIcon={(visible) => (
         <View style={styles.rightSlot}>
           {selectedCard && <CardStats card={selectedCard} size="sm" />}
           {visible
-            ? <ChevronUp size={16} color="#888" />
-            : <ChevronDown size={16} color="#888" />}
+            ? <ChevronUp size={18} color={ACCENT} />
+            : <ChevronDown size={18} color={MUTED} />}
         </View>
       )}
-      // List items: name on the left, stats pinned to the right
-      renderItem={(item) => (
-        <View style={styles.item}>
-          <Text style={styles.itemLabel} numberOfLines={1}>{item.label}</Text>
+      // List items: name on the left, stats pinned to the right.
+      // `selected` lets us mark the active row for clearer navigation.
+      renderItem={(item, selected) => (
+        <View style={[styles.item, selected && styles.itemSelected]}>
+          <Text
+            style={[styles.itemLabel, selected && styles.itemLabelSelected]}
+            numberOfLines={1}
+          >
+            {item.label}
+          </Text>
           {item.card && <CardStats card={item.card} size="sm" />}
         </View>
       )}
@@ -64,24 +74,45 @@ export default function AppDropdown({
   );
 }
 
+const SURFACE = "#0A4A63";
+const BORDER = "#1C5E78";
+const ACTIVE_COLOR = "#11607F";
+const ACCENT = "#E78D17";
+const MUTED = "#B3C9D1";
+
 const styles = StyleSheet.create({
   dropdown: {
-    height: 50,
+    height: 50, // ≥ 44px WCAG-friendly touch target
     borderWidth: 1,
-    borderColor: "#d1d5db",
-    borderRadius: 8,
-    paddingHorizontal: 12,
+    borderColor: BORDER,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    backgroundColor: SURFACE,
     flex: 1,
   },
   placeholder: {
-    color: "#9ca3af",
+    color: "#7FA3B0",
+    fontSize: 15,
   },
   selectedText: {
-    color: "#111827",
+    color: "#FFFFFF",
+    fontSize: 15,
+  },
+  searchInput: {
+    borderRadius: 8,
+    borderColor: BORDER,
+    backgroundColor: "#013952",
+    color: "#FFFFFF",
+    height: 44,
   },
   listContainer: {
-    borderRadius: 8,
-    borderColor: "#d1d5db",
+    borderRadius: 10,
+    borderColor: BORDER,
+    backgroundColor: SURFACE,
+    overflow: "hidden",
+  },
+  itemContainer: {
+    backgroundColor: SURFACE,
   },
   rightSlot: {
     flexDirection: "row",
@@ -91,13 +122,22 @@ const styles = StyleSheet.create({
   item: {
     flexDirection: "row",
     alignItems: "center",
+    minHeight: 44, // comfortable tap target with spacing
     paddingHorizontal: 14,
     paddingVertical: 10,
     gap: 10,
   },
+  itemSelected: {
+    borderLeftWidth: 3,
+    borderLeftColor: ACCENT,
+  },
   itemLabel: {
     flex: 1,
-    fontSize: 14,
-    color: "#111827",
+    fontSize: 15,
+    color: "#FFFFFF",
+  },
+  itemLabelSelected: {
+    color: ACCENT,
+    fontWeight: "600",
   },
 });
