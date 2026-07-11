@@ -7,21 +7,26 @@ import '@/global.css';
 
 import { Platform, type ViewStyle } from 'react-native';
 
+// Riftbound brand theme — a fixed dark-teal palette (not OS light/dark driven,
+// so both keys are identical). Contrast checked against WCAG AA:
+//   white on #013952 ≈ 12.3:1 (AAA) · #E78D17 on #013952 ≈ 4.8:1 (AA)
+//   #B3C9D1 on #013952 ≈ 7.1:1 (AAA)
+const brand = {
+  text: '#FFFFFF',           // primary body text
+  textSecondary: '#B3C9D1',  // muted text / metadata
+  title: '#E78D17',          // headings / brand accent
+  accent: '#E78D17',         // interactive accent (buttons, active states)
+  accentText: '#013952',     // text/icon sitting on an accent fill
+  background: '#013952',     // app base
+  backgroundElement: '#0A4A63', // raised surfaces (cards, inputs)
+  backgroundSelected: '#11607F', // hovered / selected surface
+  border: '#1C5E78',         // hairlines & outlines on dark
+  danger: '#F87171',         // destructive actions (accessible red on teal)
+} as const;
+
 export const Colors = {
-  light: {
-    text: '#000000',
-    background: '#ffffff',
-    backgroundElement: '#F0F0F3',
-    backgroundSelected: '#E0E1E6',
-    textSecondary: '#60646C',
-  },
-  dark: {
-      text: '#000000',
-    background: '#ffffff',
-    backgroundElement: '#F0F0F3',
-    backgroundSelected: '#E0E1E6',
-    textSecondary: '#60646C',
-  },
+  light: brand,
+  dark: brand,
 } as const;
 
 export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;

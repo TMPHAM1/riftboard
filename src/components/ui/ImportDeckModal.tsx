@@ -130,7 +130,7 @@ export default function ImportDeckModal({ visible, onClose, onImported, deckToEd
           <View style={styles.header}>
             <Text style={styles.title}>{isEditMode ? "Edit Deck" : "Import Deck"}</Text>
             <Pressable onPress={handleClose} hitSlop={12}>
-              <X size={20} color="#000" />
+              <X size={20} color="#B3C9D1" />
             </Pressable>
           </View>
 
@@ -140,6 +140,7 @@ export default function ImportDeckModal({ visible, onClose, onImported, deckToEd
               value={deckName}
               onChangeText={setDeckName}
               placeholder="e.g. Irelia Tempo"
+              placeholderTextColor="#7FA3B0"
               style={styles.nameInput}
               autoCapitalize="words"
               returnKeyType="next"
@@ -152,6 +153,7 @@ export default function ImportDeckModal({ visible, onClose, onImported, deckToEd
               value={deckText}
               onChangeText={setDeckText}
               placeholder={"Legend:\n1 Card Name\nMainDeck:\n3 Card Name\n..."}
+              placeholderTextColor="#7FA3B0"
               multiline
               style={styles.textArea}
               autoCorrect={false}
@@ -166,7 +168,7 @@ export default function ImportDeckModal({ visible, onClose, onImported, deckToEd
               disabled={loading}
             >
               {loading ? (
-                <ActivityIndicator color="#fff" />
+                <ActivityIndicator color="#013952" />
               ) : (
                 <Text style={styles.importBtnText}>
                   {isEditMode ? "Save Changes" : "Import & Save"}
@@ -190,9 +192,11 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.4)",
   },
   sheet: {
-    backgroundColor: "#fff",
+    backgroundColor: "#013952",
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
+    borderWidth: 1,
+    borderColor: "#1C5E78",
     maxHeight: "85%",
     paddingBottom: Platform.OS === "ios" ? 34 : 16,
   },
@@ -203,11 +207,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#e0e0e0",
+    borderBottomColor: "#1C5E78",
   },
   title: {
     fontSize: 17,
     fontWeight: "600",
+    color: "#FFFFFF",
   },
   body: {
     paddingHorizontal: 20,
@@ -217,21 +222,25 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#444",
+    color: "#B3C9D1",
     marginBottom: 4,
   },
   nameInput: {
     borderWidth: 1,
-    borderColor: "#ccc",
+    borderColor: "#1C5E78",
+    backgroundColor: "#0A4A63",
+    color: "#FFFFFF",
     borderRadius: 10,
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    minHeight: 48,
     fontSize: 15,
     marginBottom: 16,
   },
   textArea: {
     borderWidth: 1,
-    borderColor: "#ccc",
+    borderColor: "#1C5E78",
+    backgroundColor: "#0A4A63",
+    color: "#FFFFFF",
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -245,17 +254,19 @@ const styles = StyleSheet.create({
     paddingTop: 12,
   },
   importBtn: {
-    backgroundColor: "#007AFF",
+    backgroundColor: "#E78D17",
     borderRadius: 12,
+    minHeight: 52,
+    justifyContent: "center",
     paddingVertical: 14,
     alignItems: "center",
   },
   importBtnDisabled: {
-    backgroundColor: "#aaa",
+    backgroundColor: "#1C5E78",
   },
   importBtnText: {
-    color: "#fff",
+    color: "#013952",
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: "700",
   },
 });

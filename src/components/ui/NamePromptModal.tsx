@@ -77,7 +77,7 @@ export default function NamePromptModal({
           <View style={styles.header}>
             <Text style={styles.title}>{title}</Text>
             <Pressable onPress={handleClose} hitSlop={12}>
-              <X size={18} color="#555" />
+              <X size={18} color="#B3C9D1" />
             </Pressable>
           </View>
 
@@ -87,6 +87,7 @@ export default function NamePromptModal({
             value={value}
             onChangeText={setValue}
             placeholder={placeholder}
+            placeholderTextColor="#7FA3B0"
             style={styles.input}
             autoFocus
             returnKeyType="done"
@@ -122,8 +123,10 @@ const styles = StyleSheet.create({
   },
   card: {
     width: "100%",
-    backgroundColor: "#fff",
+    backgroundColor: "#0A4A63",
     borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#1C5E78",
     padding: Spacing.three,
     gap: Spacing.two,
   },
@@ -135,13 +138,16 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: "600",
+    color: "#FFFFFF",
   },
   input: {
     borderWidth: 1,
-    borderColor: "#ccc",
+    borderColor: "#1C5E78",
+    backgroundColor: "#013952",
+    color: "#FFFFFF",
     borderRadius: 10,
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    minHeight: 48,
     fontSize: 15,
   },
   actions: {
@@ -151,25 +157,29 @@ const styles = StyleSheet.create({
     marginTop: Spacing.one,
   },
   cancelBtn: {
+    minHeight: 44,
+    justifyContent: "center",
     paddingHorizontal: 16,
     paddingVertical: 10,
   },
   cancelText: {
     fontSize: 15,
-    color: "#555",
+    color: "#B3C9D1",
   },
   confirmBtn: {
-    backgroundColor: "#007AFF",
+    backgroundColor: "#E78D17",
     borderRadius: 10,
+    minHeight: 44,
+    justifyContent: "center",
     paddingHorizontal: 20,
     paddingVertical: 10,
   },
   confirmBtnDisabled: {
-    backgroundColor: "#aaa",
+    backgroundColor: "#1C5E78",
   },
   confirmText: {
-    color: "#fff",
+    color: "#013952",
     fontSize: 15,
-    fontWeight: "600",
+    fontWeight: "700",
   },
 });

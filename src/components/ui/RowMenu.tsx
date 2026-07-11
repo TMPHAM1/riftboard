@@ -26,7 +26,7 @@ function RowMenu({ onDelete, onView }: RowMenuProps) {
   return (
     <>
       <Pressable ref={anchorRef} onPress={openMenu} hitSlop={8}>
-        <EllipsisVertical height={24} width={24} />
+        <EllipsisVertical height={24} width={24} color="#B3C9D1" />
       </Pressable>
 
       <Modal visible={open} transparent animationType="fade" onRequestClose={close}>
@@ -43,7 +43,7 @@ function RowMenu({ onDelete, onView }: RowMenuProps) {
               }}
             >
               <ThemedText>View</ThemedText>
-              <Eye height={20} width={20} color="#555" />
+              <Eye height={20} width={20} color="#B3C9D1" />
             </Pressable>
           )}
 
@@ -55,7 +55,7 @@ function RowMenu({ onDelete, onView }: RowMenuProps) {
             }}
           >
             <ThemedText style={styles.dangerText}>Delete</ThemedText>
-            <Trash height={20} width={20} color="#A32D2D" />
+            <Trash height={20} width={20} color="#F87171" />
           </Pressable>
         </View>
       </Modal>
@@ -65,17 +65,23 @@ function RowMenu({ onDelete, onView }: RowMenuProps) {
 
 const styles = StyleSheet.create({
   backdrop: {
-    ...StyleSheet.absoluteFillObject,
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   menu: {
     position: "absolute",
     minWidth: 160,
-    backgroundColor: "white",
-    borderRadius: 8,
+    backgroundColor: "#0A4A63",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#1C5E78",
     paddingVertical: 4,
     elevation: 4,
     shadowColor: "#000",
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.3,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 2 },
   },
@@ -83,11 +89,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    minHeight: 44,
     gap: 10,
     paddingVertical: 10,
     paddingHorizontal: 14,
   },
-  dangerText: { color: "#A32D2D" },
+  dangerText: { color: "#F87171" },
 });
 
 export default RowMenu;

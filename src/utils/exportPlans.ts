@@ -7,9 +7,6 @@
 
 import { SideBoardPlan } from "@/types/rift";
 
-const slotsTotal = (slots: { quantity: number }[]) =>
-  slots.reduce((sum, s) => sum + s.quantity, 0);
-
 // Minimal HTML-escaping for user-provided strings (deck/plan/card names).
 function esc(value: string): string {
   return value
@@ -39,15 +36,15 @@ function rowsHtml(plan: SideBoardPlan): string {
 }
 
 function planBlockHtml(plan: SideBoardPlan): string {
-  const vsTag = plan.vsLegend
-    ? `<span class="vs-tag">vs ${esc(plan.vsLegend)}</span>`
+  const opponent = plan.vsLegend
+    ? `<span class="plan-opponent">Opponent: ${esc(plan.vsLegend)}</span>`
     : "";
 
   return `
   <div class="plan">
     <div class="plan-header">
       <span class="plan-name">${esc(plan.vs)}</span>
-      ${vsTag}
+      ${opponent}
     </div>
     <table class="grid">
       <thead>
@@ -60,9 +57,6 @@ function planBlockHtml(plan: SideBoardPlan): string {
         ${rowsHtml(plan)}
       </tbody>
     </table>
-    <div class="plan-footer">
-      ${slotsTotal(plan.out)} out · ${slotsTotal(plan.in)} in
-    </div>
   </div>`;
 }
 
@@ -94,6 +88,7 @@ export function buildPlansHtml(
     font-size: 22px;
     font-weight: 700;
     margin: 0 0 16px;
+    text-align: center;
   }
   .plan {
     border: 1px solid #E5E7EB;
@@ -104,22 +99,10 @@ export function buildPlansHtml(
     -webkit-region-break-inside: avoid;
   }
   .plan-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
     margin-bottom: 8px;
-    flex-wrap: wrap;
   }
-  .plan-name { font-size: 16px; font-weight: 700; color: #111; }
-  .vs-tag {
-    font-size: 11px;
-    color: #92400E;
-    font-weight: 600;
-    padding: 2px 7px;
-    background: #FEF3C7;
-    border: 1px solid #F59E0B;
-    border-radius: 5px;
-  }
+  .plan-name { font-size: 17px; font-weight: 700; color: #111; display: block; }
+  .plan-opponent { font-size: 12px; font-weight: 600; color: #555; display: block; margin-top: 2px; }
   table.grid { width: 100%; border-collapse: collapse; table-layout: fixed; }
   .col-head {
     font-size: 10px;
@@ -140,12 +123,6 @@ export function buildPlansHtml(
   }
   td.cell + td.cell { border-left: 1px solid #E5E7EB; }
   tr.alt { background: #F9FAFB; }
-  .plan-footer {
-    font-size: 10px;
-    color: #aaa;
-    text-align: right;
-    margin-top: 8px;
-  }
   .empty { font-size: 13px; color: #888; padding: 12px 0; text-align: center; }
 </style>
 </head>
